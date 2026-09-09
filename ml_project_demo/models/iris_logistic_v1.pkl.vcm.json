@@ -1,0 +1,51 @@
+{
+  "model_name": "iris_logistic_v1",
+  "model_hash": "sha256:60c9a0fcc522b0ddcd95f81ae94171a24fd51ea531cce2bd30fdc6c819518d67",
+  "model_file": "models/iris_logistic_v1.pkl",
+  "code": {
+    "git_commit": "55d5b5e6e72a5959108662acf4006d2a426c2d41",
+    "git_branch": "master",
+    "git_remote": null,
+    "git_url": null
+  },
+  "data": {
+    "dvc_files": [
+      {
+        "path": "data/iris_v1.csv",
+        "dvc_hash": "84f2c9e782e4f0123456789abcdef012",
+        "size_bytes": 614,
+        "timestamp": "2026-09-09T13:34:37.247290+00:00"
+      }
+    ]
+  },
+  "training": {
+    "timestamp": "2026-09-09T13:37:10.665388+00:00",
+    "duration_seconds": 2.8282179832458496,
+    "user": "kishorveeraragavan",
+    "hostname": "fedora"
+  },
+  "hyperparameters": {
+    "C": 0.1,
+    "solver": "lbfgs"
+  },
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  },
+  "environment": {
+    "python_version": "3.14.7",
+    "libraries": {
+      "scikit-learn": "1.9.0",
+      "pandas": "3.0.5",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "GitPython": "3.1.62",
+      "click": "8.5.0",
+      "pyyaml": "6.0.3"
+    }
+  },
+  "metadata_version": "1.0",
+  "created_at": "2026-09-09T13:37:10.665431+00:00"
+}
