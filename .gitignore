@@ -1,9 +1,15 @@
-# Python
+# ==============================================================================
+# VCM (Version Control Models) - Git Ignore Configuration
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Distribution / packaging
 build/
 develop-eggs/
 dist/
@@ -22,27 +28,65 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# Virtual environments
 venv/
 .venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 
-# Testing & Coverage
+# Testing & quality assurance
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .nox/
 .mypy_cache/
+.ruff_cache/
+.hypothesis/
 
-# IDE
+# IDE & editors
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+*.sublime-project
+*.sublime-workspace
 
-# VCM local runtime files
+# Operating system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VCM runtime, local databases & metadata
 .vcm/
 .vcmconfig.yaml
-models/*.vcm.json
+*.vcm.json
+
+# Local model binaries & weight artifacts
+models/*.pkl
+models/*.joblib
+models/*.pt
+models/*.pth
+models/*.bin
+models/*.onnx
+models/*.h5
+
+# Local metrics, temporary evaluation & export files
+metrics*.json
+*models_export*.csv
+*exported_models*.csv
+*export*.json
+*.log
+
+# Isolated demo / testing directories
+ml_project_demo/
+scratch/

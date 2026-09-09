@@ -1,4 +1,0 @@
-Model Name,Accuracy,F1 Score,Dataset,Git Commit,Created At
-iris_gb_v3,100.0%,100.0%,data/iris_v1.csv,55d5b5e6,2026-09-09 13:37
-iris_rf_v2,100.0%,100.0%,data/iris_v1.csv,55d5b5e6,2026-09-09 13:37
-iris_logistic_v1,100.0%,100.0%,data/iris_v1.csv,55d5b5e6,2026-09-09 13:37
