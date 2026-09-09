@@ -76,6 +76,12 @@ Clone and install VCM locally:
 ```bash
 git clone https://github.com/Kishor-9361/VersionControlModels.git
 cd VersionControlModels
+
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install VCM in editable mode
 pip install -e .
 ```
 
@@ -108,12 +114,12 @@ This initializes:
 Run your existing training script through `vcm train`. VCM executes the script and automatically captures the code commit, data hashes, metrics, and environment:
 
 ```bash
-vcm train --model-name "churn_predictor_v1" \
-          --dataset "data/churn_train.csv" \
+vcm train --model-name "my_model_v1" \
+          --dataset "data/train.csv" \
           --script "train.py" \
           --metrics "metrics.json" \
-          --model-file "models/churn_predictor_v1.pkl" \
-          --params learning_rate=0.01 max_depth=6 n_estimators=200
+          --model-file "models/my_model_v1.pkl" \
+          --params learning_rate=0.01 batch_size=32 epochs=50
 ```
 
 Output:
@@ -122,11 +128,11 @@ Running training script: train.py ...
 [Script output]
 
 Model tracked successfully.
-  Model:      churn_predictor_v1
+  Model:      my_model_v1
   Accuracy:   94.2%
   Git commit: a8f41b92c0192e8fa4d9b62ef05d15c7e39a018b
-  Dataset:    data/churn_train.csv
-  Metadata:   models/churn_predictor_v1.pkl.vcm.json
+  Dataset:    data/train.csv
+  Metadata:   models/my_model_v1.pkl.vcm.json
 ```
 
 ---
@@ -157,15 +163,15 @@ vcm models
 ```
 
 ```text
-╭────────────────────┬────────────┬────────────┬──────────────────────┬──────────────┬──────────────────╮
-│ Model Name         │ Accuracy   │ F1 Score   │ Dataset              │ Git Commit   │ Created At       │
-├────────────────────┼────────────┼────────────┼──────────────────────┼──────────────┼──────────────────┤
-│ churn_predictor_v2 │ 96.5%      │ 96.2%      │ data/churn_train.csv │ 55d5b5e6     │ 2026-09-09 15:30 │
-├────────────────────┼────────────┼────────────┼──────────────────────┼──────────────┼──────────────────┤
-│ churn_predictor_v1 │ 94.2%      │ 93.8%      │ data/churn_train.csv │ a8f41b92     │ 2026-09-09 14:15 │
-├────────────────────┼────────────┼────────────┼──────────────────────┼──────────────┼──────────────────┤
-│ baseline_logreg_v0 │ 89.1%      │ 88.5%      │ data/churn_train.csv │ 427af932     │ 2026-09-09 11:00 │
-╰────────────────────┴────────────┴────────────┴──────────────────────┴──────────────┴──────────────────╯
+╭────────────────────┬────────────┬────────────┬──────────────────┬──────────────┬──────────────────╮
+│ Model Name         │ Accuracy   │ F1 Score   │ Dataset          │ Git Commit   │ Created At       │
+├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
+│ my_model_v2        │ 96.5%      │ 96.2%      │ data/train.csv   │ 55d5b5e6     │ 2026-09-09 15:30 │
+├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
+│ my_model_v1        │ 94.2%      │ 93.8%      │ data/train.csv   │ a8f41b92     │ 2026-09-09 14:15 │
+├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
+│ baseline_model_v0  │ 89.1%      │ 88.5%      │ data/train.csv   │ 427af932     │ 2026-09-09 11:00 │
+╰────────────────────┴────────────┴────────────┴──────────────────┴──────────────┴──────────────────╯
 
 Total: 3 models found
 ```
@@ -174,7 +180,7 @@ Filter by dataset, select top performers, or export:
 
 ```bash
 # Filter models by dataset file or hash
-vcm models --dataset "data/churn_train.csv"
+vcm models --dataset "data/train.csv"
 
 # Show only the top performing model
 vcm models --best
@@ -189,22 +195,22 @@ vcm models --format json --export models_export.json
 Inspect the complete lineage tree connecting a model binary to its code commit, dataset files, hyperparameters, and environment:
 
 ```bash
-vcm lineage models/churn_predictor_v2.pkl
+vcm lineage models/my_model_v2.pkl
 ```
 
 ```text
-Model: churn_predictor_v2 (models/churn_predictor_v2.pkl)
+Model: my_model_v2 (models/my_model_v2.pkl)
 ├── Accuracy: 0.9650 (96.5%) | F1 Score: 0.9620
 ├── Git Commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
 │   ├── Branch: main
 │   ├── Remote: origin
 │   └── URL: https://github.com/Kishor-9361/VersionControlModels.git
 ├── Dataset Files:
-│   ├── data/churn_train.csv (hash: 84f2c9e782e4f012..., size: 14.2 MB)
+│   ├── data/train.csv (hash: 84f2c9e782e4f012..., size: 14.2 MB)
 ├── Hyperparameters:
 │   ├── learning_rate: 0.005
-│   ├── max_depth: 8
-│   ├── n_estimators: 300
+│   ├── batch_size: 64
+│   ├── epochs: 100
 └── Trained by: ml-engineer on prod-cluster-01 (2026-09-09T15:30:00+00:00)
 ```
 
@@ -213,34 +219,34 @@ Model: churn_predictor_v2 (models/churn_predictor_v2.pkl)
 Compare two model artifacts side-by-side with metric delta computation and parameter diffs:
 
 ```bash
-vcm compare models/churn_predictor_v1.pkl models/churn_predictor_v2.pkl
+vcm compare models/my_model_v1.pkl models/my_model_v2.pkl
 ```
 
 ```text
-Comparison: churn_predictor_v1 vs churn_predictor_v2
-╭──────────────────┬──────────────────────┬──────────────────────┬──────────────────╮
-│ Field / Metric   │ churn_predictor_v1   │ churn_predictor_v2   │ Delta / Change   │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ Accuracy         │ 94.2%                │ 96.5%                │ +2.3%            │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ F1_score         │ 93.8%                │ 96.2%                │ +2.4%            │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ Precision        │ 0.9400               │ 0.9640               │ +0.0240          │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ Recall           │ 0.9360               │ 0.9600               │ +0.0240          │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ Dataset          │ data/churn_train.csv │ data/churn_train.csv │ Same             │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ Git Commit       │ a8f41b92             │ 55d5b5e6             │ Different        │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ learning_rate    │ 0.01                 │ 0.005                │ Changed          │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ max_depth        │ 6                    │ 8                    │ Changed          │
-├──────────────────┼──────────────────────┼──────────────────────┼──────────────────┤
-│ n_estimators     │ 200                  │ 300                  │ Changed          │
-╰──────────────────┴──────────────────────┴──────────────────────┴──────────────────╯
+Comparison: my_model_v1 vs my_model_v2
+╭──────────────────┬──────────────────┬──────────────────┬──────────────────╮
+│ Field / Metric   │ my_model_v1      │ my_model_v2      │ Delta / Change   │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Accuracy         │ 94.2%            │ 96.5%            │ +2.3%            │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ F1_score         │ 93.8%            │ 96.2%            │ +2.4%            │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Precision        │ 0.9400           │ 0.9640           │ +0.0240          │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Recall           │ 0.9360           │ 0.9600           │ +0.0240          │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Dataset          │ data/train.csv   │ data/train.csv   │ Same             │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Git Commit       │ a8f41b92         │ 55d5b5e6         │ Different        │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ learning_rate    │ 0.01             │ 0.005            │ Changed          │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ batch_size       │ 32               │ 64               │ Changed          │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ epochs           │ 50               │ 100              │ Changed          │
+╰──────────────────┴──────────────────┴──────────────────┴──────────────────╯
 
-Model 'churn_predictor_v2' outperforms 'churn_predictor_v1':
+Model 'my_model_v2' outperforms 'my_model_v1':
    - 2.3% higher accuracy
 ```
 
@@ -248,11 +254,11 @@ Model 'churn_predictor_v2' outperforms 'churn_predictor_v1':
 
 ```bash
 # View human-readable model summary
-vcm info models/churn_predictor_v2.pkl
+vcm info models/my_model_v2.pkl
 
 # View or export raw JSON metadata
-vcm info models/churn_predictor_v2.pkl --json
-vcm export models/churn_predictor_v2.pkl --output metadata_export.json
+vcm info models/my_model_v2.pkl --json
+vcm export models/my_model_v2.pkl --output metadata_export.json
 ```
 
 ### Ephemeral Recovery (`vcm repair`)
@@ -283,10 +289,10 @@ import joblib
 tracker = ModelTracker()
 
 with tracker.track(
-    model_name="churn_predictor_v3",
-    model_path="models/churn_predictor_v3.pkl",
-    hyperparameters={"n_estimators": 250, "max_depth": 7},
-    dataset_path="data/churn_train.csv",
+    model_name="my_model_v3",
+    model_path="models/my_model_v3.pkl",
+    hyperparameters={"learning_rate": 0.001, "batch_size": 128},
+    dataset_path="data/train.csv",
 ) as session:
     # 1. Train model
     model.fit(X_train, y_train)
@@ -295,7 +301,7 @@ with tracker.track(
     acc = accuracy_score(y_test, model.predict(X_test))
     
     # 3. Save model binary
-    joblib.dump(model, "models/churn_predictor_v3.pkl")
+    joblib.dump(model, "models/my_model_v3.pkl")
     
     # 4. Attach evaluation metrics
     session.set_metrics({"accuracy": acc, "f1_score": 0.958})
@@ -309,11 +315,11 @@ from vcm.trainer import ModelTracker
 tracker = ModelTracker()
 
 metadata = tracker.log_model(
-    model_path="models/classifier_prod.pkl",
-    model_name="classifier_prod_v1",
+    model_path="models/my_model_prod.pkl",
+    model_name="my_model_prod_v1",
     metrics={"accuracy": 0.952, "loss": 0.048},
     hyperparameters={"batch_size": 64, "learning_rate": 0.001},
-    dataset_path="data/dataset.csv",
+    dataset_path="data/train.csv",
 )
 ```
 
@@ -326,8 +332,8 @@ Each model artifact has a corresponding `.vcm.json` sidecar file adhering to thi
 ```json
 {
   "schema_version": "1.0.0",
-  "model_name": "churn_predictor_v2",
-  "model_file": "models/churn_predictor_v2.pkl",
+  "model_name": "my_model_v2",
+  "model_file": "models/my_model_v2.pkl",
   "model_hash": "sha256:31f721cc48842a26a2428365962721c86000159368ebb0f656eb87bb69d58143",
   "created_at": "2026-09-09T15:30:00.000000+00:00",
   "code": {
@@ -340,7 +346,7 @@ Each model artifact has a corresponding `.vcm.json` sidecar file adhering to thi
   "data": {
     "dvc_files": [
       {
-        "path": "data/churn_train.csv",
+        "path": "data/train.csv",
         "dvc_hash": "84f2c9e782e4f012a91f58b0931215b2",
         "size_bytes": 14200000
       }
@@ -354,8 +360,8 @@ Each model artifact has a corresponding `.vcm.json` sidecar file adhering to thi
   },
   "hyperparameters": {
     "learning_rate": 0.005,
-    "max_depth": 8,
-    "n_estimators": 300
+    "batch_size": 64,
+    "epochs": 100
   },
   "metrics": {
     "accuracy": 0.965,
