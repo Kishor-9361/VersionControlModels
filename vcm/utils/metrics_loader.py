@@ -53,13 +53,23 @@ class MetricsLoader:
     @staticmethod
     def parse_cli_params(params: List[str]) -> Dict[str, Any]:
         """Parse list of CLI key=value parameter strings into typed dictionary."""
+        import re
+
         result: Dict[str, Any] = {}
+        tokens: List[str] = []
         for item in params:
+            if not item:
+                continue
+            # Split tokens on spaces and commas while preserving key=value
+            parts = re.split(r"[\s,]+", item.strip())
+            tokens.extend([p for p in parts if p])
+
+        for item in tokens:
             if "=" not in item:
                 continue
             key, val = item.split("=", 1)
             key = key.strip()
-            val = val.strip()
+            val = val.strip().strip(",")
 
             if not key:
                 continue

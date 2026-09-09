@@ -68,13 +68,13 @@ def init_cmd(db_path: str, models_dir: str) -> None:
         db = Database(db_path=db_path)
         db.init()
 
-        click.echo("✅ VCM initialized successfully")
-        click.echo(f"   - Created {os.path.dirname(db_path) or '.vcm'}/ directory")
-        click.echo(f"   - Initialized database at {db_path}")
-        click.echo("   - Created .vcmconfig.yaml")
-        click.echo("\nUse 'vcm train' to track models")
+        click.echo("VCM initialized successfully.")
+        click.echo(f"  - Created {os.path.dirname(db_path) or '.vcm'}/ directory")
+        click.echo(f"  - Initialized database at {db_path}")
+        click.echo("  - Created .vcmconfig.yaml")
+        click.echo("\nUse 'vcm train' to track models.")
     except Exception as exc:
-        click.echo(f"❌ Initialization failed: {exc}", err=True)
+        click.echo(f"Error: Initialization failed: {exc}", err=True)
         sys.exit(1)
 
 
@@ -86,6 +86,7 @@ def init_cmd(db_path: str, models_dir: str) -> None:
 @click.option("--params", "params", multiple=True, help="Hyperparameter key=value pair (can be used multiple times).")
 @click.option("--model-file", help="Explicit path to output model file if not in models/ directory.")
 @click.option("--output-dir", help="Directory where model is expected to be saved.")
+@click.argument("extra_params", nargs=-1, required=False)
 def train_cmd(
     model_name: str,
     dataset: Optional[str],
@@ -94,17 +95,19 @@ def train_cmd(
     params: tuple[str, ...],
     model_file: Optional[str],
     output_dir: Optional[str],
+    extra_params: tuple[str, ...],
 ) -> None:
     """Wrap model training and automatically capture code, data, metrics, and environment."""
     try:
         click.echo(f"Running training script: {script} ...")
+        all_params = list(params) + list(extra_params)
         tracker = ModelTracker()
         metadata = tracker.run_and_track(
             script_path=script,
             model_name=model_name,
             dataset=dataset,
             metrics_path=metrics_path,
-            params=list(params),
+            params=all_params,
             model_file=model_file,
             output_dir=output_dir,
         )
@@ -112,18 +115,18 @@ def train_cmd(
         acc = metadata.metrics.get("accuracy")
         acc_str = f"{acc * 100:.1f}%" if acc is not None else "N/A"
 
-        click.echo("\n✅ Model tracked successfully")
-        click.echo(f"   Model: {metadata.model_name}")
-        click.echo(f"   Accuracy: {acc_str}")
-        click.echo(f"   Git commit: {metadata.code.git_commit or 'uncommitted'}")
+        click.echo("\nModel tracked successfully.")
+        click.echo(f"  Model:      {metadata.model_name}")
+        click.echo(f"  Accuracy:   {acc_str}")
+        click.echo(f"  Git commit: {metadata.code.git_commit or 'uncommitted'}")
         if metadata.data.dvc_files:
-            click.echo(f"   Dataset: {metadata.data.dvc_files[0].path}")
-        click.echo(f"   Metadata: {metadata.model_file}.vcm.json")
+            click.echo(f"  Dataset:    {metadata.data.dvc_files[0].path}")
+        click.echo(f"  Metadata:   {metadata.model_file}.vcm.json")
     except FileNotFoundError as exc:
-        click.echo(f"❌ Error: {exc}", err=True)
+        click.echo(f"Error: {exc}", err=True)
         sys.exit(1)
     except Exception as exc:
-        click.echo(f"❌ Training tracking failed: {exc}", err=True)
+        click.echo(f"Error: Training tracking failed: {exc}", err=True)
         sys.exit(1)
 
 
@@ -148,11 +151,11 @@ def models_cmd(
         db = Database(config.database_path)
 
         if db.is_corrupted():
-            click.echo("❌ Database corrupted. Run: vcm repair", err=True)
+            click.echo("Error: Database corrupted. Run 'vcm repair' to restore.", err=True)
             sys.exit(1)
 
         if not os.path.exists(db.db_path):
-            click.echo("⚠️ VCM database not found. Run 'vcm init' or 'vcm repair'.", err=True)
+            click.echo("Warning: VCM database not found. Run 'vcm init' or 'vcm repair'.", err=True)
             return
 
         models = db.get_all_models()
@@ -230,7 +233,7 @@ def models_cmd(
         click.echo(f"\nTotal: {len(models)} models found")
 
     except DatabaseError as exc:
-        click.echo(f"❌ Database error: {exc}", err=True)
+        click.echo(f"Error: Database error: {exc}", err=True)
         sys.exit(1)
 
 
@@ -240,7 +243,7 @@ def lineage_cmd(model_ref: str) -> None:
     """Show complete lineage tree for a model."""
     meta = _find_metadata(model_ref)
     if not meta:
-        click.echo(f"❌ Model '{model_ref}' not found in database or filesystem.", err=True)
+        click.echo(f"Error: Model '{model_ref}' not found in database or filesystem.", err=True)
         sys.exit(1)
 
     acc = meta.metrics.get("accuracy")
@@ -248,21 +251,21 @@ def lineage_cmd(model_ref: str) -> None:
     f1 = meta.metrics.get("f1_score")
     f1_str = f"{f1:.4f}" if f1 is not None else "N/A"
 
-    click.echo(f"\n📦 Model: {meta.model_name} ({meta.model_file})")
-    click.echo(f"├── 💾 Accuracy: {acc_str} | F1 Score: {f1_str}")
-    click.echo(f"├── 🎯 Git Commit: {meta.code.git_commit or 'untracked'}")
+    click.echo(f"\nModel: {meta.model_name} ({meta.model_file})")
+    click.echo(f"├── Accuracy: {acc_str} | F1 Score: {f1_str}")
+    click.echo(f"├── Git Commit: {meta.code.git_commit or 'untracked'}")
     click.echo(f"│   ├── Branch: {meta.code.git_branch or 'N/A'}")
     click.echo(f"│   ├── Remote: {meta.code.git_remote or 'N/A'}")
     click.echo(f"│   └── URL: {meta.code.git_url or 'N/A'}")
 
-    click.echo("├── 📊 Dataset Files:")
+    click.echo("├── Dataset Files:")
     if meta.data.dvc_files:
         for f in meta.data.dvc_files:
             click.echo(f"│   ├── {f.path} (hash: {f.dvc_hash[:16]}..., size: {f.size_bytes} B)")
     else:
         click.echo("│   └── None tracked")
 
-    click.echo("├── ⚙️ Hyperparameters:")
+    click.echo("├── Hyperparameters:")
     if meta.hyperparameters:
         for k, v in meta.hyperparameters.items():
             click.echo(f"│   ├── {k}: {v}")
@@ -272,7 +275,7 @@ def lineage_cmd(model_ref: str) -> None:
     user = meta.training.user or "unknown"
     host = meta.training.hostname or "unknown"
     ts = meta.training.timestamp or "unknown"
-    click.echo(f"└── 👤 Trained by: {user} on {host} ({ts})")
+    click.echo(f"└── Trained by: {user} on {host} ({ts})")
 
 
 @click.command("compare")
@@ -284,10 +287,10 @@ def compare_cmd(model1_ref: str, model2_ref: str) -> None:
     m2 = _find_metadata(model2_ref)
 
     if not m1:
-        click.echo(f"❌ Model 1 '{model1_ref}' not found.", err=True)
+        click.echo(f"Error: Model 1 '{model1_ref}' not found.", err=True)
         sys.exit(1)
     if not m2:
-        click.echo(f"❌ Model 2 '{model2_ref}' not found.", err=True)
+        click.echo(f"Error: Model 2 '{model2_ref}' not found.", err=True)
         sys.exit(1)
 
     click.echo(f"\nComparison: {m1.model_name} vs {m2.model_name}")
@@ -302,9 +305,11 @@ def compare_cmd(model1_ref: str, model2_ref: str) -> None:
         v2 = m2.metrics.get(k)
         if v1 is not None and v2 is not None:
             delta = v2 - v1
-            sign = "+" if delta >= 0 else ""
-            arrow = "⬆" if delta > 0 else ("⬇" if delta < 0 else "=")
-            delta_str = f"{sign}{delta * 100:.1f}% {arrow}" if ("acc" in k or "score" in k) else f"{sign}{delta:.4f} {arrow}"
+            if delta == 0:
+                delta_str = "= 0.0%" if ("acc" in k or "score" in k) else "= 0.0000"
+            else:
+                sign = "+" if delta > 0 else ""
+                delta_str = f"{sign}{delta * 100:.1f}%" if ("acc" in k or "score" in k) else f"{sign}{delta:.4f}"
             v1_str = f"{v1 * 100:.1f}%" if ("acc" in k or "score" in k) else f"{v1:.4f}"
             v2_str = f"{v2 * 100:.1f}%" if ("acc" in k or "score" in k) else f"{v2:.4f}"
         else:
@@ -340,13 +345,13 @@ def compare_cmd(model1_ref: str, model2_ref: str) -> None:
     acc1 = m1.metrics.get("accuracy", 0.0)
     acc2 = m2.metrics.get("accuracy", 0.0)
     if acc2 > acc1:
-        click.echo(f"\n📈 Model '{m2.model_name}' is better:")
-        click.echo(f"   • {(acc2 - acc1) * 100:.1f}% higher accuracy")
+        click.echo(f"\nModel '{m2.model_name}' outperforms '{m1.model_name}':")
+        click.echo(f"   - {(acc2 - acc1) * 100:.1f}% higher accuracy")
     elif acc1 > acc2:
-        click.echo(f"\n📈 Model '{m1.model_name}' is better:")
-        click.echo(f"   • {(acc1 - acc2) * 100:.1f}% higher accuracy")
+        click.echo(f"\nModel '{m1.model_name}' outperforms '{m2.model_name}':")
+        click.echo(f"   - {(acc1 - acc2) * 100:.1f}% higher accuracy")
     else:
-        click.echo(f"\n⚖️ Models have equal accuracy ({acc1 * 100:.1f}%)")
+        click.echo(f"\nModels have equal accuracy ({acc1 * 100:.1f}%)")
 
 
 @click.command("info")
@@ -356,7 +361,7 @@ def info_cmd(model_ref: str, as_json: bool) -> None:
     """Show detailed model metadata."""
     meta = _find_metadata(model_ref)
     if not meta:
-        click.echo(f"❌ Model '{model_ref}' not found.", err=True)
+        click.echo(f"Error: Model '{model_ref}' not found.", err=True)
         sys.exit(1)
 
     if as_json:
@@ -384,14 +389,14 @@ def export_cmd(model_ref: str, output: Optional[str]) -> None:
     """Export model metadata to JSON file or stdout."""
     meta = _find_metadata(model_ref)
     if not meta:
-        click.echo(f"❌ Model '{model_ref}' not found.", err=True)
+        click.echo(f"Error: Model '{model_ref}' not found.", err=True)
         sys.exit(1)
 
     json_content = meta.to_json()
     if output:
         with open(output, "w", encoding="utf-8") as f:
             f.write(json_content)
-        click.echo(f"✅ Metadata exported to {output}")
+        click.echo(f"Metadata exported to {output}")
     else:
         click.echo(json_content)
 
@@ -414,7 +419,7 @@ def repair_cmd() -> None:
                         meta = MetadataModel.from_json(f.read())
                         found_models.append(meta)
                 except Exception as exc:
-                    click.echo(f"⚠️ Warning: Could not read {path}: {exc}", err=True)
+                    click.echo(f"Warning: Could not read {path}: {exc}", err=True)
 
     rebuilt_count = db.rebuild_from_metadata(found_models)
-    click.echo(f"✅ Database repaired: Re-indexed {rebuilt_count} models.")
+    click.echo(f"Database repaired: Re-indexed {rebuilt_count} models.")

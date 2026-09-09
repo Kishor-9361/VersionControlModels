@@ -9,11 +9,11 @@ VCM is a lightweight, zero-configuration version control system for machine lear
 
 ## Key Features
 
-- 🧬 **Automatic Metadata Capture:** Captures Git commit hash, DVC dataset hashes, training duration, user context, Python environment, hyperparameters, and evaluation metrics without boilerplate.
-- ⚡ **Zero Setup & Ultra-Fast:** Dual persistence with human-readable `.vcm.json` sidecar files attached to model artifacts and indexed in local SQLite (`.vcm/vcm.db`).
-- 🌲 **Model Lineage:** Inspect the complete lineage tree connecting trained models back to their exact source code commits, datasets, and hyperparameters.
-- ⚖️ **Model Comparison:** Compare two model versions side-by-side with automatic metric delta highlighting.
-- 🛡️ **Zero Lock-In & Self-Healing:** JSON-serializable, portable metadata. If the SQLite database is ever deleted or corrupted, `vcm repair` rebuilds the complete index from `.vcm.json` files.
+- **Automatic Metadata Capture:** Captures Git commit hash, DVC dataset hashes, training duration, user context, Python environment, hyperparameters, and evaluation metrics without boilerplate.
+- **Zero Setup & Fast:** Dual persistence with human-readable `.vcm.json` sidecar files attached to model artifacts and indexed in local SQLite (`.vcm/vcm.db`).
+- **Model Lineage:** Inspect the complete lineage tree connecting trained models back to their exact source code commits, datasets, and hyperparameters.
+- **Model Comparison:** Compare two model versions side-by-side with metric delta computation.
+- **Zero Lock-In & Self-Healing:** JSON-serializable, portable metadata. If the SQLite database is ever deleted or corrupted, `vcm repair` rebuilds the complete index from `.vcm.json` files.
 
 ---
 
@@ -50,12 +50,13 @@ Output:
 ```
 Running training script: train.py ...
 [Script output]
-✅ Model tracked successfully
-   Model: emotion_classifier_v1
-   Accuracy: 94.2%
-   Git commit: abc123def456
-   Dataset: data/train.csv
-   Metadata: models/emotion_classifier_v1.pkl.vcm.json
+
+Model tracked successfully.
+  Model:      emotion_classifier_v1
+  Accuracy:   94.2%
+  Git commit: abc123def456
+  Dataset:    data/train.csv
+  Metadata:   models/emotion_classifier_v1.pkl.vcm.json
 ```
 
 ### 4. Query & Filter Models

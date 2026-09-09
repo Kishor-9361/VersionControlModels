@@ -41,4 +41,4 @@ with open(metrics_path, "w", encoding="utf-8") as f:
     json.dump(metrics, f, indent=2)
 print(f"--> Metrics saved to: {metrics_path}")
 
-print("✅ Training completed successfully!")
+print("Training completed successfully.")

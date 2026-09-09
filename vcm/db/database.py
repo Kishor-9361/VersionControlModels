@@ -259,6 +259,21 @@ class Database:
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to fetch model by hash: {exc}") from exc
 
+    def get_model_id_by_hash(self, model_hash: str) -> Optional[int]:
+        """Retrieve model row ID matching model_hash."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT id FROM models WHERE model_hash = ?",
+                    (model_hash,),
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return int(row["id"])
+        except sqlite3.Error as exc:
+            raise DatabaseError(f"Failed to fetch model ID by hash: {exc}") from exc
+
     def get_best_model(self, metric: str = "accuracy") -> Optional[MetadataModel]:
         """Retrieve the top model based on a specified metric (default accuracy)."""
         models = self.get_all_models()

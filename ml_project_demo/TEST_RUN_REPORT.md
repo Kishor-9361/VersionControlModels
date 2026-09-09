@@ -1,6 +1,6 @@
 # VCM Full-Cycle Verification & Live Test Report
 
-**Execution Status:** ✅ `100% PASS (All Commands Operational)`  
+**Execution Status:** `100% PASS (All Commands Operational)`  
 **Test Project Directory:** `ml_project_demo/`  
 **Date:** 2026-09-09  
 
@@ -44,9 +44,9 @@ vcm train --model-name iris_logistic_v1 \
 **Output:**
 ```
 Running training script: train_model1.py ...
-✅ LogisticRegression trained: Acc=1.0000, F1=1.0000
+LogisticRegression trained: Acc=1.0000, F1=1.0000
 
-✅ Model tracked successfully
+Model tracked successfully.
    Model: iris_logistic_v1
    Accuracy: 100.0%
    Git commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
@@ -69,9 +69,9 @@ vcm train --model-name iris_rf_v2 \
 **Output:**
 ```
 Running training script: train_model2.py ...
-✅ RandomForest trained: Acc=1.0000, F1=1.0000
+RandomForest trained: Acc=1.0000, F1=1.0000
 
-✅ Model tracked successfully
+Model tracked successfully.
    Model: iris_rf_v2
    Accuracy: 100.0%
    Git commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
@@ -94,9 +94,9 @@ vcm train --model-name iris_gb_v3 \
 **Output:**
 ```
 Running training script: train_model3.py ...
-✅ GradientBoosting trained: Acc=1.0000, F1=1.0000
+GradientBoosting trained: Acc=1.0000, F1=1.0000
 
-✅ Model tracked successfully
+Model tracked successfully.
    Model: iris_gb_v3
    Accuracy: 100.0%
    Git commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
@@ -149,18 +149,18 @@ vcm lineage models/iris_rf_v2.pkl
 ```
 **Output:**
 ```
-📦 Model: iris_rf_v2 (models/iris_rf_v2.pkl)
-├── 💾 Accuracy: 1.0000 (100.0%) | F1 Score: 1.0000
-├── 🎯 Git Commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
+Model: iris_rf_v2 (models/iris_rf_v2.pkl)
+├── Accuracy: 1.0000 (100.0%) | F1 Score: 1.0000
+├── Git Commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
 │   ├── Branch: master
 │   ├── Remote: N/A
 │   └── URL: N/A
-├── 📊 Dataset Files:
+├── Dataset Files:
 │   ├── data/iris_v1.csv (hash: 84f2c9e782e4f012..., size: 614 B)
-├── ⚙️ Hyperparameters:
+├── Hyperparameters:
 │   ├── n_estimators: 100
 │   ├── max_depth: 4
-└── 👤 Trained by: kishorveeraragavan on fedora (2026-09-09T13:37:14.316666+00:00)
+└── Trained by: kishorveeraragavan on fedora (2026-09-09T13:37:14.316666+00:00)
 ```
 
 ---
@@ -196,7 +196,7 @@ Comparison: iris_logistic_v1 vs iris_gb_v3
 │ solver           │ lbfgs              │ N/A              │ Changed          │
 ╰──────────────────┴────────────────────┴──────────────────┴──────────────────╯
 
-⚖️ Models have equal accuracy (100.0%)
+Models have equal accuracy (100.0%)
 ```
 
 ---
@@ -246,7 +246,7 @@ vcm repair
 ```
 **Output:**
 ```
-✅ Database repaired: Re-indexed 3 models.
+Database repaired: Re-indexed 3 models.
 ```
 All models and indexes were fully restored into a clean SQLite database.
 

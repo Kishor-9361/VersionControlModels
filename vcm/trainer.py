@@ -150,8 +150,12 @@ class ModelTracker:
         with open(json_file_path, "w", encoding="utf-8") as f:
             f.write(metadata.to_json())
 
-        # Index in SQLite
-        self.db.insert_model(metadata)
+        # Index in SQLite (upsert if model hash already exists)
+        existing_id = self.db.get_model_id_by_hash(model_hash)
+        if existing_id is not None:
+            self.db.update_model(existing_id, metadata)
+        else:
+            self.db.insert_model(metadata)
 
         return metadata
 

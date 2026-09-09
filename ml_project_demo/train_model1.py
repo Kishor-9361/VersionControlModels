@@ -46,4 +46,4 @@ metrics_output_path = "metrics_v1.json"
 with open(metrics_output_path, "w", encoding="utf-8") as f:
     json.dump(metrics, f, indent=2)
 
-print(f"✅ LogisticRegression trained: Acc={acc:.4f}, F1={f1:.4f}")
+print(f"LogisticRegression trained: Acc={acc:.4f}, F1={f1:.4f}")

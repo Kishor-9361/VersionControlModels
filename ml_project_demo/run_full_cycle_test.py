@@ -119,7 +119,7 @@ def main() -> None:
     assert os.path.exists(db_file)
 
     print("\n=======================================================")
-    print("🎉 FULL CYCLE VALIDATION COMPLETED SUCCESSFULLY (100% PASS)!")
+    print("FULL CYCLE VALIDATION COMPLETED SUCCESSFULLY (100% PASS)!")
     print("=======================================================\n")
 
 if __name__ == "__main__":

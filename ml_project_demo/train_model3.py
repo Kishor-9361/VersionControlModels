@@ -46,4 +46,4 @@ metrics_output_path = "metrics_v3.json"
 with open(metrics_output_path, "w", encoding="utf-8") as f:
     json.dump(metrics, f, indent=2)
 
-print(f"✅ GradientBoosting trained: Acc={acc:.4f}, F1={f1:.4f}")
+print(f"GradientBoosting trained: Acc={acc:.4f}, F1={f1:.4f}")
