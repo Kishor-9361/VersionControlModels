@@ -376,13 +376,49 @@ vcm reproduce models/iris_logistic_v1.pkl
 
 ---
 
+## 13. MLflow Experiment Tracking Integration (`vcm mlflow`)
+
+### 13.1 Inspect Integration Status (`vcm mlflow status`)
+```bash
+vcm mlflow status
+```
+- **Expected:** Displays current tracking URI (`file:./mlruns`), default experiment name, and Python SDK status.
+
+### 13.2 Enable MLflow Integration (`vcm mlflow enable`)
+```bash
+vcm mlflow enable
+vcm mlflow status
+```
+- **Expected:** Configuration updated to enable automatic logging to MLflow.
+
+### 13.3 Sync Single Model to MLflow (`vcm mlflow sync <model_name>`)
+```bash
+vcm mlflow sync iris_logistic_v1
+```
+- **Expected:** Syncs hyperparameters, metrics, and Model DNA tags to target MLflow experiment.
+
+### 13.4 Sync All Workspace Models to MLflow (`vcm mlflow sync --all`)
+```bash
+vcm mlflow sync --all
+```
+- **Expected:** Bulk synchronizes all models tracked in the database to MLflow runs.
+
+### 13.5 Disable MLflow Integration (`vcm mlflow disable`)
+```bash
+vcm mlflow disable
+vcm mlflow status
+```
+- **Expected:** MLflow tracking disabled in configuration.
+
+---
+
 ## Summary Checklist of Tested Commands
 
 | # | Command | Subcommands / Key Flags Tested | Verified |
 | :---: | :--- | :--- | :---: |
 | 1 | `vcm --version` / `vcm version` | `--verbose` | [x] |
 | 2 | `vcm --help` | Root command listing | [x] |
-| 3 | `vcm config` | `show`, `set` | [x] |
+| 3 | `vcm config` | `show`, `set`, `reset` | [x] |
 | 4 | `vcm init` | Workspace setup (`.vcm/vcm.db`) | [x] |
 | 5 | `vcm train` | `--params`, `--dataset`, `--metrics`, `--reasoning` | [x] |
 | 6 | `vcm models` | `--best`, `--dataset`, `--limit`, `--sort-by`, `--format`, `--export` | [x] |
@@ -398,3 +434,4 @@ vcm reproduce models/iris_logistic_v1.pkl
 | 16 | `vcm deploy` | `--environment staging/production` | [x] |
 | 17 | `vcm audit` | `--environment staging/production` audit trail | [x] |
 | 18 | `vcm reproduce` | Deterministic rebuild & prediction parity verification | [x] |
+| 19 | `vcm mlflow` | `status`, `enable`, `sync <model>`, `sync --all`, `disable` | [x] |
