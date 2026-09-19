@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/badge/release-v1.0.0-blue.svg)](https://github.com/Kishor-9361/VersionControlModels/releases)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-164%20passed%20%28100%25%29-brightgreen.svg)](#test-suite--quality-gates)
+[![Tests](https://img.shields.io/badge/tests-166%20passed%20%28100%25%29-brightgreen.svg)](#test-suite--quality-gates)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](#test-suite--quality-gates)
 [![Typing](https://img.shields.io/badge/typing-mypy%20strict%20%280%20errors%29-blue.svg)](#test-suite--quality-gates)
 [![Code Style](https://img.shields.io/badge/code%20style-flake8%20clean-black.svg)](https://github.com/psf/black)
@@ -168,6 +168,7 @@ vcm compare iris_v1 iris_v2
 | Command | Description |
 | :--- | :--- |
 | `vcm init` | Initialize VCM workspace configuration and SQLite database index. |
+| `vcm status` | Show overall workspace status: Git branch/commit, active session, catalog, and untracked artifacts. |
 | `vcm train` | Wrap model training and capture code, data, metrics, and environment. |
 | `vcm models` | List, query, and filter tracked models by metric, dataset, or best performer. |
 | `vcm info` | Display complete Model DNA metadata for a specified model. |
@@ -254,9 +255,9 @@ flake8 vcm/ --max-line-length=120
 ```
 
 ### Quality Scorecard
-- **Test Suite**: **164 / 164 tests passing** (100%)
+- **Test Suite**: **166 / 166 tests passing** (100%)
 - **Test Coverage**: **91% overall coverage** (Timeline & MLflow models: 93%–100%)
-- **Static Typing**: **0 errors** across all 75 source files (`mypy --strict`)
+- **Static Typing**: **0 errors** across all 76 source files (`mypy --strict`)
 - **Linting**: **0 violations** (`flake8 --max-line-length=120`)
 - **Query Performance**: **< 4 ms** for 1,000 models on local SQLite
 

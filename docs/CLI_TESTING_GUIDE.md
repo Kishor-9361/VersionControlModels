@@ -63,6 +63,12 @@ vcm init
 ```
 - **Expected:** Creates `.vcm/`, initializes local SQLite database `.vcm/vcm.db`, and creates `models/` directory.
 
+### 3.2 Inspect Workspace Status (`vcm status`)
+```bash
+vcm status
+```
+- **Expected:** Displays full workspace status (database, git commit/branch/cleanliness, active session, model catalog, integrations, and untracked model artifacts).
+
 ---
 
 ## 4. Training & Model DNA Tracking (`vcm train`)
@@ -420,18 +426,19 @@ vcm mlflow status
 | 2 | `vcm --help` | Root command listing | [x] |
 | 3 | `vcm config` | `show`, `set`, `reset` | [x] |
 | 4 | `vcm init` | Workspace setup (`.vcm/vcm.db`) | [x] |
-| 5 | `vcm train` | `--params`, `--dataset`, `--metrics`, `--reasoning` | [x] |
-| 6 | `vcm models` | `--best`, `--dataset`, `--limit`, `--sort-by`, `--format`, `--export` | [x] |
-| 7 | `vcm info` | Default summary, `--json` | [x] |
-| 8 | `vcm compare` | Side-by-side metric & hyperparameter diffing | [x] |
-| 9 | `vcm lineage` | Visual ASCII lineage tree | [x] |
-| 10 | `vcm export` | `--output <file.json>` | [x] |
-| 11 | `vcm repair` | SQLite database index reconstruction from disk sidecars | [x] |
-| 12 | `vcm session` | `start`, `annotate`, `logs`, `info`, `list`, `end`, `models`, `compare`, `explain-improvement`, `create-retrospective`, `export` | [x] |
-| 13 | `vcm timeline` | `--show-reasoning`, `--highlight-best`, `--format table/ascii/html/csv/json`, `analyze`, `reason`, `show` | [x] |
-| 14 | `vcm timeline-reason` | Standalone command, `--show`, `--force` | [x] |
-| 15 | `vcm analysis` | `--report full_lineage`, `--output` | [x] |
-| 16 | `vcm deploy` | `--environment staging/production` | [x] |
-| 17 | `vcm audit` | `--environment staging/production` audit trail | [x] |
-| 18 | `vcm reproduce` | Deterministic rebuild & prediction parity verification | [x] |
-| 19 | `vcm mlflow` | `status`, `enable`, `sync <model>`, `sync --all`, `disable` | [x] |
+| 5 | `vcm status` | Workspace status, Git state, active session, catalog, untracked artifacts | [x] |
+| 6 | `vcm train` | `--params`, `--dataset`, `--metrics`, `--reasoning` | [x] |
+| 7 | `vcm models` | `--best`, `--dataset`, `--limit`, `--sort-by`, `--format`, `--export` | [x] |
+| 8 | `vcm info` | Default summary, `--json` | [x] |
+| 9 | `vcm compare` | Side-by-side metric & hyperparameter diffing | [x] |
+| 10 | `vcm lineage` | Visual ASCII lineage tree | [x] |
+| 11 | `vcm export` | `--output <file.json>` | [x] |
+| 12 | `vcm repair` | SQLite database index reconstruction from disk sidecars | [x] |
+| 13 | `vcm session` | `start`, `annotate`, `logs`, `info`, `list`, `end`, `models`, `compare`, `explain-improvement`, `create-retrospective`, `export` | [x] |
+| 14 | `vcm timeline` | `--show-reasoning`, `--highlight-best`, `--format table/ascii/html/csv/json`, `analyze`, `reason`, `show` | [x] |
+| 15 | `vcm timeline-reason` | Standalone command, `--show`, `--force` | [x] |
+| 16 | `vcm analysis` | `--report full_lineage`, `--output` | [x] |
+| 17 | `vcm deploy` | `--environment staging/production` | [x] |
+| 18 | `vcm audit` | `--environment staging/production` audit trail | [x] |
+| 19 | `vcm reproduce` | Deterministic rebuild & prediction parity verification | [x] |
+| 20 | `vcm mlflow` | `status`, `enable`, `sync <model>`, `sync --all`, `disable` | [x] |

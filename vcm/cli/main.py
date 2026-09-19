@@ -17,6 +17,7 @@ from vcm.cli.commands import (
     deploy_cmd,
     audit_cmd,
     version_cmd,
+    status_cmd,
 )
 from vcm.cli.session_commands import session_group
 from vcm.cli.timeline_commands import (
@@ -48,6 +49,7 @@ cli.add_command(config_cmd)
 cli.add_command(reproduce_cmd)
 cli.add_command(deploy_cmd)
 cli.add_command(audit_cmd)
+cli.add_command(status_cmd)
 cli.add_command(version_cmd)
 cli.add_command(timeline_group, name="timeline")
 cli.add_command(timeline_reason_standalone_cmd, name="timeline-reason")

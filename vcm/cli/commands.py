@@ -665,3 +665,148 @@ def version_cmd(verbose: bool) -> None:
         click.echo("Home: https://github.com/Kishor-9361/VersionControlModels")
     else:
         click.echo(f"VCM version {__version__}")
+
+
+@click.command("status")
+def status_cmd() -> None:
+    """Show the overall workspace status (similar to 'git status')."""
+    config_file = ".vcmconfig.yaml"
+    db_dir = ".vcm"
+
+    if not os.path.exists(db_dir) and not os.path.exists(config_file):
+        click.echo("Error: VCM is not initialized in this directory.", err=True)
+        click.echo("Run 'vcm init' to initialize VCM in this workspace.")
+        sys.exit(1)
+
+    try:
+        config = VCMConfig.load()
+    except Exception:
+        config = VCMConfig()
+
+    click.echo("\nVCM Workspace Status")
+    click.echo("═" * 60)
+    click.echo(f"Workspace:       {os.path.abspath('.')}")
+
+    # Database & Catalog status
+    db_path = config.database_path
+    if os.path.exists(db_path):
+        try:
+            db = Database(db_path)
+            all_models = db.get_all_models()
+            model_count = len(all_models)
+            best_model = db.get_best_model()
+            db_status = f"{db_path} (healthy, {model_count} model{'s' if model_count != 1 else ''} tracked)"
+            click.echo(f"Database:        {db_status}")
+        except Exception as exc:
+            all_models = []
+            best_model = None
+            click.echo(f"Database:        {db_path} (warning: {exc})")
+    else:
+        all_models = []
+        best_model = None
+        click.echo(f"Database:        {db_path} (not initialized)")
+
+    # Git & Code State
+    click.echo("\nGit & Code State:")
+    try:
+        from vcm.integrations.git_client import GitClient
+        git_client = GitClient()
+        if git_client.is_repo():
+            branch = git_client.get_current_branch()
+            commit = git_client.get_current_commit()[:8]
+            is_dirty = git_client.has_uncommitted_changes()
+            tree_str = "dirty (uncommitted changes detected)" if is_dirty else "clean"
+            click.echo(f"  Branch:        {branch}")
+            click.echo(f"  Commit:        {commit}")
+            click.echo(f"  Working Tree:  {tree_str}")
+        else:
+            click.echo("  Git:           not a git repository")
+    except Exception as exc:
+        click.echo(f"  Git:           unavailable ({exc})")
+
+    # Active Session
+    click.echo("\nActive Session:")
+    try:
+        from vcm.models.session import SessionTracker
+        active_tracker = SessionTracker.get_active_session()
+        if active_tracker and active_tracker.session:
+            sess = active_tracker.session
+            dur = active_tracker.get_duration()
+            hrs, rem = divmod(int(dur.total_seconds()), 3600)
+            mins, _ = divmod(rem, 60)
+            dur_str = f"{hrs}h {mins}m" if hrs > 0 else f"{mins} minutes"
+            start_str = format_local_timestamp(sess.start_time, "%Y-%m-%d %H:%M:%S", include_tz=True)
+            click.echo(f"  Session ID:    {sess.session_id}")
+            click.echo(f"  Name:          {sess.session_name}")
+            click.echo(f"  Started:       {start_str} ({dur_str})")
+            click.echo(f"  User:          {sess.user}")
+            click.echo(f"  Models Trained: {len(sess.models_trained)}")
+            click.echo(f"  Annotations:   {len(sess.annotations)}")
+        else:
+            click.echo("  No active session. (Start one with 'vcm session start <name>')")
+    except Exception as exc:
+        click.echo(f"  Status:        unavailable ({exc})")
+
+    # Model Catalog Summary
+    click.echo("\nModel Catalog:")
+    if all_models:
+        click.echo(f"  Total Models:  {len(all_models)}")
+        latest = all_models[0]
+        acc_raw = latest.metrics.get("accuracy")
+        latest_acc = f"{acc_raw * 100:.1f}%" if acc_raw is not None else "N/A"
+        latest_ts = format_local_timestamp(latest.created_at, "%Y-%m-%d %H:%M", include_tz=True)
+        click.echo(f"  Latest Model:  {latest.model_name} (Acc: {latest_acc}, {latest_ts})")
+        if best_model:
+            b_acc_raw = best_model.metrics.get("accuracy")
+            best_acc = f"{b_acc_raw * 100:.1f}%" if b_acc_raw is not None else "N/A"
+            click.echo(f"  Best Model:    {best_model.model_name} (Acc: {best_acc})")
+    else:
+        click.echo("  No models tracked yet. (Train one with 'vcm train')")
+
+    # Integrations
+    click.echo("\nIntegrations:")
+    try:
+        from vcm.integrations.dvc_client import DVCClient
+        dvc_client = DVCClient()
+        dvc_status = "enabled (active)" if dvc_client.is_initialized() else "disabled"
+    except Exception:
+        dvc_status = "disabled"
+    mlflow_status_str = (
+        f"enabled (target: {config.mlflow_tracking_uri})"
+        if config.mlflow_enabled
+        else f"disabled (target: {config.mlflow_tracking_uri})"
+    )
+    click.echo(f"  DVC:           {dvc_status}")
+    click.echo(f"  MLflow:        {mlflow_status_str}")
+
+    # Untracked Model Artifacts
+    click.echo("\nUntracked Model Artifacts:")
+    untracked_files: List[str] = []
+    model_extensions = (".pkl", ".joblib", ".pt", ".pth", ".onnx", ".bin", ".h5")
+    search_dirs = [config.models_dir] if os.path.isdir(config.models_dir) else ["models"]
+    seen_files = set()
+    for sdir in search_dirs:
+        if not os.path.exists(sdir):
+            continue
+        for root, _, files in os.walk(sdir):
+            if any(ign in root for ign in [".git", ".vcm", "venv", ".venv", "__pycache__", ".pytest_cache"]):
+                continue
+            for f in files:
+                if f.endswith(model_extensions):
+                    rel_p = os.path.relpath(os.path.join(root, f), ".")
+                    if rel_p in seen_files:
+                        continue
+                    seen_files.add(rel_p)
+                    # Check if tracked
+                    sidecar = f"{rel_p}.vcm.json"
+                    is_tracked = os.path.isfile(sidecar) or any(m.model_file == rel_p for m in all_models)
+                    if not is_tracked:
+                        untracked_files.append(rel_p)
+
+    if untracked_files:
+        click.echo("  (Use 'vcm train' to capture Model DNA for untracked models)")
+        for uf in untracked_files:
+            click.echo(f"  • {uf}")
+    else:
+        click.echo("  None (all model artifacts are tracked)")
+    click.echo("")
