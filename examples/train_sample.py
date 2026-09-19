@@ -3,7 +3,6 @@
 import json
 import os
 import pickle
-import sys
 
 # Define model and metrics output paths
 models_dir = os.environ.get("VCM_MODELS_DIR", "models")

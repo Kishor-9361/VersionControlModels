@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import yaml
 
 
@@ -19,6 +19,8 @@ class VCMConfig:
     git_enabled: bool = True
     dvc_enabled: bool = True
     mlflow_enabled: bool = False
+    mlflow_tracking_uri: str = "file:./mlruns"
+    mlflow_experiment_name: str = "Default"
     auto_tracking: Dict[str, Any] = field(
         default_factory=lambda: {
             "capture_environment": True,
@@ -52,17 +54,23 @@ class VCMConfig:
             "integrations": {
                 "git": {"enabled": self.git_enabled},
                 "dvc": {"enabled": self.dvc_enabled},
-                "mlflow": {"enabled": self.mlflow_enabled},
+                "mlflow": {
+                    "enabled": self.mlflow_enabled,
+                    "tracking_uri": self.mlflow_tracking_uri,
+                    "experiment_name": self.mlflow_experiment_name,
+                },
             },
             "auto_tracking": dict(self.auto_tracking),
         }
 
-    def save(self) -> None:
+    def save(self, path: Optional[str] = None) -> None:
         """Write current configuration to YAML file."""
-        parent = os.path.dirname(self.config_path)
+        target_path = path or self.config_path
+        self.config_path = target_path
+        parent = os.path.dirname(target_path)
         if parent:
             os.makedirs(parent, exist_ok=True)
-        with open(self.config_path, "w", encoding="utf-8") as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(self.to_dict(), f, default_flow_style=False, sort_keys=False)
 
     @classmethod
@@ -80,6 +88,7 @@ class VCMConfig:
             vcm_sec = data.get("vcm", {})
             int_sec = data.get("integrations", {})
             auto_sec = data.get("auto_tracking", {})
+            mlflow_sec = int_sec.get("mlflow", {})
 
             return cls(
                 config_path=config_path,
@@ -88,7 +97,9 @@ class VCMConfig:
                 models_dir=str(vcm_sec.get("models_dir", "models")),
                 git_enabled=bool(int_sec.get("git", {}).get("enabled", True)),
                 dvc_enabled=bool(int_sec.get("dvc", {}).get("enabled", True)),
-                mlflow_enabled=bool(int_sec.get("mlflow", {}).get("enabled", False)),
+                mlflow_enabled=bool(mlflow_sec.get("enabled", False)),
+                mlflow_tracking_uri=str(mlflow_sec.get("tracking_uri", "file:./mlruns")),
+                mlflow_experiment_name=str(mlflow_sec.get("experiment_name", "Default")),
                 auto_tracking=dict(auto_sec) if isinstance(auto_sec, dict) else {},
             )
         except Exception:

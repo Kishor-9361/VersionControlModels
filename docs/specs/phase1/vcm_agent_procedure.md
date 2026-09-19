@@ -1,15 +1,15 @@
 # VCM MVP - Agent Build Procedure
 
-**Purpose:** Step-by-step guide for AI agent to build production-quality MVP  
-**Duration:** 4 weeks (parallel execution possible)  
-**Approach:** TDD-first, incremental, validated at each step  
+**Purpose:** Step-by-step guide for AI agent to build production-quality MVP 
+**Duration:** 4 weeks (parallel execution possible) 
+**Approach:** TDD-first, incremental, validated at each step 
 
 ---
 
 ## CRITICAL SUCCESS FACTORS FOR AGENT
 
 ### 1. Token Efficiency Strategy
-**Problem:** Large codebase exceeds context windows  
+**Problem:** Large codebase exceeds context windows 
 **Solution:** Divide and conquer
 
 **Phase-based context allocation:**
@@ -60,7 +60,7 @@ mkdir vcm_project
 cd vcm_project
 git init
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
+source venv/bin/activate # Linux/Mac
 pip install pytest pytest-cov GitPython pyyaml click
 
 # Create directory structure
@@ -109,23 +109,23 @@ from datetime import datetime
 
 @dataclass(frozen=True)
 class CodeInfo:
-    git_commit: str
-    git_branch: str
-    git_url: Optional[str]
+ git_commit: str
+ git_branch: str
+ git_url: Optional[str]
 
 @dataclass(frozen=True)
 class MetadataModel:
-    model_name: str
-    model_hash: str
-    model_file: str
-    metrics: Dict[str, float]
-    code: CodeInfo
-    # ... other nested objects
-    
-    def to_dict(self) -> Dict: ...
-    def to_json(self) -> str: ...
-    @classmethod
-    def from_json(cls, json_str: str) -> 'MetadataModel': ...
+ model_name: str
+ model_hash: str
+ model_file: str
+ metrics: Dict[str, float]
+ code: CodeInfo
+ # ... other nested objects
+ 
+ def to_dict(self) -> Dict: ...
+ def to_json(self) -> str: ...
+ @classmethod
+ def from_json(cls, json_str: str) -> 'MetadataModel': ...
 ```
 
 **Deliverable:** 
@@ -155,13 +155,13 @@ pytest vcm/tests/unit/test_metadata.py -v --cov=vcm.models.metadata --cov-report
 ```python
 # vcm/db/database.py should provide:
 class Database:
-    def __init__(self, db_path: str = ".vcm/vcm.db")
-    def init(self) -> None  # Create schema
-    def insert_model(self, metadata: MetadataModel) -> int  # Returns ID
-    def query_by_accuracy(self, min_acc: float = 0) -> List[MetadataModel]
-    def query_by_dataset(self, dataset_hash: str) -> List[MetadataModel]
-    def update_model(self, model_id: int, metadata: MetadataModel) -> bool
-    def get_all_models(self) -> List[MetadataModel]
+ def __init__(self, db_path: str = ".vcm/vcm.db")
+ def init(self) -> None # Create schema
+ def insert_model(self, metadata: MetadataModel) -> int # Returns ID
+ def query_by_accuracy(self, min_acc: float = 0) -> List[MetadataModel]
+ def query_by_dataset(self, dataset_hash: str) -> List[MetadataModel]
+ def update_model(self, model_id: int, metadata: MetadataModel) -> bool
+ def get_all_models(self) -> List[MetadataModel]
 ```
 
 **Key Design Decisions:**
@@ -193,21 +193,21 @@ pytest vcm/tests/unit/test_database.py -v --cov=vcm.db --cov-report=term-missing
 ```python
 # vcm/utils/environment.py
 class EnvironmentCapture:
-    @staticmethod
-    def get_python_version() -> str
-    @staticmethod
-    def get_libraries() -> Dict[str, str]
-    @staticmethod
-    def get_system_info() -> Dict[str, str]
-    @staticmethod
-    def capture_all() -> Dict
+ @staticmethod
+ def get_python_version() -> str
+ @staticmethod
+ def get_libraries() -> Dict[str, str]
+ @staticmethod
+ def get_system_info() -> Dict[str, str]
+ @staticmethod
+ def capture_all() -> Dict
 
 # vcm/utils/metrics_loader.py
 class MetricsLoader:
-    @staticmethod
-    def from_json_file(path: str) -> Dict[str, float]
-    @staticmethod
-    def from_dict(d: Dict) -> Dict[str, float]
+ @staticmethod
+ def from_json_file(path: str) -> Dict[str, float]
+ @staticmethod
+ def from_dict(d: Dict) -> Dict[str, float]
 ```
 
 **Checkpoint Validation:**
@@ -230,29 +230,29 @@ pytest vcm/tests/unit/test_environment.py vcm/tests/unit/test_metrics_loader.py 
 **Required Implementation:**
 ```python
 class VCMConfig:
-    def __init__(self, config_path: str = ".vcmconfig.yaml")
-    def load() -> VCMConfig
-    def is_initialized() -> bool
-    def get_enabled_integrations() -> List[str]
+ def __init__(self, config_path: str = ".vcmconfig.yaml")
+ def load() -> VCMConfig
+ def is_initialized() -> bool
+ def get_enabled_integrations() -> List[str]
 ```
 
 **Example `.vcmconfig.yaml`:**
 ```yaml
 vcm:
-  version: "1.0"
-  database_path: ".vcm/vcm.db"
-  
+ version: "1.0"
+ database_path: ".vcm/vcm.db"
+ 
 integrations:
-  git:
-    enabled: true
-  dvc:
-    enabled: true
-  mlflow:
-    enabled: false
+ git:
+ enabled: true
+ dvc:
+ enabled: true
+ mlflow:
+ enabled: false
 
 auto_tracking:
-  capture_environment: true
-  capture_terminal: false
+ capture_environment: true
+ capture_terminal: false
 ```
 
 ---
@@ -275,13 +275,13 @@ Implement Git and DVC integrations to capture version information.
 **Required Implementation:**
 ```python
 class GitClient:
-    def __init__(self, repo_path: str = ".")
-    def get_current_commit(self) -> str  # 40-char hash
-    def get_current_branch(self) -> str
-    def get_remote_url(self) -> Optional[str]
-    def has_uncommitted_changes(self) -> bool
-    
-    # Custom exception
+ def __init__(self, repo_path: str = ".")
+ def get_current_commit(self) -> str # 40-char hash
+ def get_current_branch(self) -> str
+ def get_remote_url(self) -> Optional[str]
+ def has_uncommitted_changes(self) -> bool
+ 
+ # Custom exception
 class GitNotInitializedError(Exception): pass
 ```
 
@@ -313,15 +313,15 @@ pytest vcm/tests/unit/test_git_client.py -v --cov=vcm.integrations.git_client
 **Required Implementation:**
 ```python
 class DVCClient:
-    def __init__(self, repo_path: str = ".")
-    def is_initialized(self) -> bool
-    def get_tracked_files(self) -> List[DVCFile]  # {path, hash, size}
-    def get_file_hash(self, filepath: str) -> Optional[str]
-    
+ def __init__(self, repo_path: str = ".")
+ def is_initialized(self) -> bool
+ def get_tracked_files(self) -> List[DVCFile] # {path, hash, size}
+ def get_file_hash(self, filepath: str) -> Optional[str]
+ 
 class DVCFile:
-    path: str
-    hash: str
-    size_bytes: int
+ path: str
+ hash: str
+ size_bytes: int
 
 class DVCNotInstalledWarning(Warning): pass
 ```
@@ -383,21 +383,21 @@ Build CLI commands and training wrapper to capture complete metadata during mode
 **Required Implementation:**
 ```python
 class ModelTracker:
-    def __init__(self, database: Database)
-    
-    # Mode 1: Decorator
-    @ModelTracker.track(model_name="classifier_v1")
-    def train_model(): ...
-    
-    # Mode 2: Context manager
-    with ModelTracker().track(model_name="classifier_v1"):
-        model = train()
-        metrics = evaluate(model)
-        model.save("model.pkl")
-    
-    # Mode 3: Manual
-    tracker = ModelTracker()
-    tracker.log_model(model_path, model_name, metrics)
+ def __init__(self, database: Database)
+ 
+ # Mode 1: Decorator
+ @ModelTracker.track(model_name="classifier_v1")
+ def train_model(): ...
+ 
+ # Mode 2: Context manager
+ with ModelTracker().track(model_name="classifier_v1"):
+ model = train()
+ metrics = evaluate(model)
+ model.save("model.pkl")
+ 
+ # Mode 3: Manual
+ tracker = ModelTracker()
+ tracker.log_model(model_path, model_name, metrics)
 ```
 
 **Flow:**
@@ -433,14 +433,14 @@ pytest vcm/tests/unit/test_trainer.py -v
 @click.group()
 @click.version_option()
 def cli():
-    """VCM - Version Control Models"""
-    pass
+ """VCM - Version Control Models"""
+ pass
 
 # Subcommands will be added in 3.3-3.8
 @cli.command()
 def init():
-    """Initialize VCM in project"""
-    pass
+ """Initialize VCM in project"""
+ pass
 ```
 
 ---
@@ -460,11 +460,11 @@ def init():
 ```bash
 $ cd my_project
 $ vcm init
-✅ VCM initialized successfully
-   - Created .vcm/ directory
-   - Initialized database
-   - Created .vcmconfig.yaml
-   
+[x] VCM initialized successfully
+ - Created .vcm/ directory
+ - Initialized database
+ - Created .vcmconfig.yaml
+ 
 Use 'vcm train' to track models
 ```
 
@@ -488,21 +488,21 @@ pytest vcm/tests/cli/test_init.py -v
 **Expected Behavior:**
 ```bash
 $ vcm train --model-name "classifier_v1" \
-            --dataset "data/train.csv" \
-            --script train.py \
-            --metrics metrics.json \
-            --params lr=0.001 epochs=50
+ --dataset "data/train.csv" \
+ --script train.py \
+ --metrics metrics.json \
+ --params lr=0.001 epochs=50
 
 Running training script: train.py ...
 [Script output]
 ...training complete...
 
-✅ Model tracked successfully
-   Model: classifier_v1
-   Accuracy: 0.942
-   Git commit: abc123
-   Dataset: data/train.csv
-   Metadata: models/classifier_v1.pkl.vcm.json
+[x] Model tracked successfully
+ Model: classifier_v1
+ Accuracy: 0.942
+ Git commit: abc123
+ Dataset: data/train.csv
+ Metadata: models/classifier_v1.pkl.vcm.json
 ```
 
 **Implementation Strategy:**
@@ -535,11 +535,11 @@ pytest vcm/tests/cli/test_train.py -v
 ```bash
 $ vcm models --best --limit 3
 ┌─────────────────┬──────────┬─────────────┬──────────┐
-│ Model Name      │ Accuracy │ Dataset     │ Git Commit
+│ Model Name │ Accuracy │ Dataset │ Git Commit
 ├─────────────────┼──────────┼─────────────┼──────────┤
-│ classifier_v2   │ 94.2%    │ train_v2.1  │ abc123
-│ classifier_v4   │ 94.0%    │ train_v2.1  │ def456
-│ classifier_v1   │ 92.5%    │ train_v2.0  │ ghi789
+│ classifier_v2 │ 94.2% │ train_v2.1 │ abc123
+│ classifier_v4 │ 94.0% │ train_v2.1 │ def456
+│ classifier_v1 │ 92.5% │ train_v2.0 │ ghi789
 └─────────────────┴──────────┴─────────────┴──────────┘
 
 Total: 3 models found
@@ -572,20 +572,20 @@ pytest vcm/tests/cli/test_models.py -v
 ```bash
 $ vcm lineage models/classifier_v2.pkl
 
-📦 Model: classifier_v2.pkl
-├── 💾 Accuracy: 0.942
-├── 🎯 Git Commit: abc123def456
-│   ├── Branch: main
-│   ├── URL: https://github.com/user/ml-project
-│   └── Timestamp: 2024-01-15T10:45:00Z
-├── 📊 Dataset Files:
-│   ├── data/train_v2.1.csv (hash: xyz789...)
-│   └── data/test_v2.1.csv (hash: qwe456...)
-├── ⚙️ Hyperparameters:
-│   ├── lr: 0.001
-│   ├── epochs: 50
-│   └── batch_size: 32
-└── 👤 Trained by: alice (2024-01-15)
+ Model: classifier_v2.pkl
+├── Accuracy: 0.942
+├── Git Commit: abc123def456
+│ ├── Branch: main
+│ ├── URL: https://github.com/user/ml-project
+│ └── Timestamp: 2024-01-15T10:45:00Z
+├── Dataset Files:
+│ ├── data/train_v2.1.csv (hash: xyz789...)
+│ └── data/test_v2.1.csv (hash: qwe456...)
+├── Hyperparameters:
+│ ├── lr: 0.001
+│ ├── epochs: 50
+│ └── batch_size: 32
+└── Trained by: alice (2024-01-15)
 ```
 
 **Checkpoint Validation:**
@@ -610,20 +610,20 @@ $ vcm compare classifier_v1.pkl classifier_v2.pkl
 
 Comparison: classifier_v1 vs classifier_v2
 ┌──────────────────┬──────────────┬──────────────┬─────────┐
-│ Metric           │ v1           │ v2           │ Change  │
+│ Metric │ v1 │ v2 │ Change │
 ├──────────────────┼──────────────┼──────────────┼─────────┤
-│ Accuracy         │ 91.5%        │ 94.2%        │ +2.7% ⬆ │
-│ F1 Score         │ 90.2%        │ 92.8%        │ +2.6% ⬆ │
-│ Dataset          │ train_v2.0   │ train_v2.1   │ Different
-│ Git Commit       │ xyz123       │ abc456       │ Different
-│ Learning Rate    │ 0.01         │ 0.001        │ 10x lower
-│ Epochs           │ 30           │ 50           │ +20 epochs
+│ Accuracy │ 91.5% │ 94.2% │ +2.7% ⬆ │
+│ F1 Score │ 90.2% │ 92.8% │ +2.6% ⬆ │
+│ Dataset │ train_v2.0 │ train_v2.1 │ Different
+│ Git Commit │ xyz123 │ abc456 │ Different
+│ Learning Rate │ 0.01 │ 0.001 │ 10x lower
+│ Epochs │ 30 │ 50 │ +20 epochs
 └──────────────────┴──────────────┴──────────────┴─────────┘
 
-📈 Model v2 is better:
-   • 2.7% higher accuracy
-   • Different dataset with more samples
-   • Better hyperparameter tuning
+ Model v2 is better:
+ • 2.7% higher accuracy
+ • Different dataset with more samples
+ • Better hyperparameter tuning
 ```
 
 **Checkpoint Validation:**
@@ -716,7 +716,7 @@ pytest vcm/tests/ -v --cov=vcm --cov-report=html
 # Expected output:
 # ====== X passed in Y.XXs ======
 # coverage: X%
-# ✅ coverage > 80%
+# [x] coverage > 80%
 
 # Type checking
 mypy vcm/ --strict
@@ -847,15 +847,15 @@ Quick Start:
 
 ```
 metadata.py (independent)
-    ↓
+ ↓
 database.py (depends on metadata.py)
-    ↓
+ ↓
 git_client.py (independent)
-    ↓
+ ↓
 dvc_client.py (independent)
-    ↓
+ ↓
 trainer.py (depends on metadata.py, database.py, git_client.py, dvc_client.py)
-    ↓
+ ↓
 cli/commands.py (depends on trainer.py, database.py)
 ```
 
@@ -901,4 +901,4 @@ All OK (0 issues)
 4. Validate at checkpoints
 5. Move to next phase
 
-Good luck! 🚀
+Good luck! 

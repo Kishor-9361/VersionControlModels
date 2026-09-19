@@ -4,61 +4,78 @@
 *Enterprise-grade, lightweight, and zero-configuration version control for machine learning models.*
 
 [![Release](https://img.shields.io/badge/release-v1.0.0-blue.svg)](https://github.com/Kishor-9361/VersionControlModels/releases)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Architecture](https://img.shields.io/badge/architecture-zero--lockin-orange.svg)](#architecture--data-flow)
-[![Code Style](https://img.shields.io/badge/code%20style-flake8%20%7C%20mypy-black.svg)](https://github.com/psf/black)
+[![Tests](https://img.shields.io/badge/tests-164%20passed%20%28100%25%29-brightgreen.svg)](#test-suite--quality-gates)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](#test-suite--quality-gates)
+[![Typing](https://img.shields.io/badge/typing-mypy%20strict%20%280%20errors%29-blue.svg)](#test-suite--quality-gates)
+[![Code Style](https://img.shields.io/badge/code%20style-flake8%20clean-black.svg)](https://github.com/psf/black)
 
 ---
 
-## Executive Overview
+## Overview
 
-In software engineering, **Git** tracks source code. In data engineering, **DVC** tracks datasets. However, machine learning models exist at the intersection of code, data, hyperparameters, runtime dependencies, and evaluation metrics.
+In traditional software development, **Git** tracks source code. In data engineering, **DVC** tracks datasets. However, machine learning models exist at the intersection of source code, data versions, training hyperparameters, runtime environments, and evaluation metrics.
 
-Without a dedicated model version control system, identifying which Git commit produced a specific model binary, on which dataset version, with which hyperparameters, and under which environment dependencies is fragmented and difficult to audit.
+Without a unified model version control system, answering critical questions is tedious and error-prone:
+- *Which exact Git commit and training script generated this model binary?*
+- *Which dataset revision was used to train it?*
+- *Why did accuracy drop by 4% between model version 2 and version 3?*
+- *Can this production model be deterministically reproduced with 100% parity?*
 
-**VCM (Version Control Models)** establishes complete traceability and reproducibility by automatically packaging your code state, dataset hashes, training parameters, evaluation metrics, and system environment into an immutable, tamper-evident record termed **Model DNA**.
+**VCM (Version Control Models)** solves this by automatically capturing the complete **Model DNA** for every training run, linking Git commits, dataset hashes, hyperparameters, environment dependencies, and developer reasoning into an immutable, verifiable record.
 
-```text
-  +-------------------+       +--------------------+
-  | Git Source Commit |       | DVC Dataset Hashes |
-  +---------+---------+       +---------+----------+
-            |                           |
-            +-------------+-------------+
-                          |
-                          v
-               +----------------------+
-               |    VCM Model DNA     |
-               | (Code + Data + Env + |
-               |   Params + Metrics)  |
-               +----------+-----------+
-                          |
-            +-------------+-------------+
-            |                           |
-            v                           v
-  +-------------------+       +--------------------+
-  |   Model Binary    |       | Portable Sidecar   |
-  | (.pkl, .pt, .onnx)| <---> | (<model>.vcm.json) |
-  +-------------------+       +---------+----------+
-                                        |
-                                        v
-                              +--------------------+
-                              | Local SQLite Index |
-                              |  (.vcm/vcm.db)     |
-                              +--------------------+
+```
+       +--------------------+       +--------------------+
+       |  Git Source State  |       | DVC Dataset Hashes |
+       +---------+----------+       +---------+----------+
+                 |                            |
+                 +--------------+-------------+
+                                |
+                                v
+                     +--------------------+
+                     |   VCM Model DNA    |
+                     | Code + Data + Env  |
+                     |  Params + Metrics  |
+                     | + Reasoning Notes  |
+                     +----------+---------+
+                                |
+                 +--------------+-------------+
+                 |                            |
+                 v                            v
+       +--------------------+       +--------------------+
+       |    Model Binary    | <---> |  Portable Sidecar  |
+       | (.pkl, .pt, .onnx) |       | (<model>.vcm.json) |
+       +--------------------+       +---------+----------+
+                                              |
+                                              v
+                                    +--------------------+
+                                    | Local SQLite Index |
+                                    |   (.vcm/vcm.db)    |
+                                    +--------------------+
 ```
 
 ---
 
 ## Key Features
 
-- **Automatic Model DNA Capture**: Automatically extracts the exact Git commit SHA, branch, remote repository URL, DVC/content dataset hashes, hyperparameters, training duration, and runtime dependencies with zero boilerplate.
-- **Dual-Layer Persistence (Zero Lock-In)**: Every model file (`.pkl`, `.onnx`, `.pt`, `.joblib`) has an attached `<model>.vcm.json` sidecar that travels with the binary across local storage, S3, GCS, or Git LFS. An optimized local SQLite database (`.vcm/vcm.db`) indexes all records for sub-millisecond queries.
-- **Complete Lineage Provenance**: Visualize the exact provenance tree connecting a trained model binary back to its source code, dataset revisions, hyperparameters, and environment context.
-- **Side-by-Side Model Diffing**: Compare any two models with automatic delta computation across evaluation metrics, hyperparameter adjustments, dataset shifts, and code revisions.
-- **Self-Healing Architecture (`vcm repair`)**: The local SQLite database operates as an ephemeral query acceleration index. If deleted, corrupted, or moved across machines, `vcm repair` reconstructs the entire index from disk sidecars in seconds.
-- **Flexible CLI & Multi-Parameter Parsing**: Accepts hyperparameters passed as repeated flags (`--params lr=0.01 --params max_depth=5`), space-separated pairs (`--params lr=0.01 max_depth=5`), or quoted comma-separated strings.
-- **Framework Agnostic**: Works out-of-the-box with PyTorch, TensorFlow, Scikit-learn, XGBoost, LightGBM, Hugging Face, ONNX, and custom ML pipelines.
+- **Automated Model DNA Capture**: Zero-boilerplate capture of Git commit SHA, branch name, DVC dataset content hashes, hyperparameters, system hardware, and Python package versions.
+- **Dual-Layer Persistence (Zero Vendor Lock-In)**:
+  - **Portable JSON Sidecars (`<model>.vcm.json`)**: Accompanies model binaries across cloud buckets (S3, GCS), local drives, or Git LFS.
+  - **Local SQLite Index (`.vcm/vcm.db`)**: High-speed indexed cache delivering sub-5ms queries across thousands of models.
+- **Model Evolution Timeline & Progression Tracking**:
+  - Trajectory tracking linking sequential model versions with delta accuracy calculations.
+  - Developer reasoning capture (`--reasoning`) documenting *why* each version was trained.
+  - Visual formatters: Console Tables, Interactive HTML visualizer with inline SVG sparklines, JSON, CSV, and ASCII graphs.
+- **Automated Regression Detection**:
+  - Automatically flags accuracy drops exceeding configurable thresholds.
+  - Performs automated root-cause diagnosis across hyperparameters, code changes, and dataset modifications.
+- **Interactive Development Sessions**:
+  - Group iterative training runs into sessions with transparent terminal stdout/stderr capture.
+  - Built-in regex privacy filter replacing API keys, bearer tokens, and secrets with `***MASKED***`.
+- **Deterministic Model Reproduction**: Re-executes training from metadata, verifying 100% prediction parity and zero metric drift.
+- **Production Deployment & Audit Trail**: Deploy model artifacts to staging/production and query tamper-evident audit logs.
+- **Self-Healing Architecture (`vcm repair`)**: Rebuilds the entire SQLite database index directly from sidecar files on disk in seconds.
 
 ---
 
@@ -66,18 +83,15 @@ Without a dedicated model version control system, identifying which Git commit p
 
 ### Prerequisites
 - Python 3.9 or higher
-- Git (optional, for code versioning)
-- DVC (optional, for dataset hash tracking)
+- Git (recommended, for code commit tracking)
+- DVC (optional, for dataset content hash tracking)
 
-### Install via pip
-
-Clone and install VCM locally:
-
+### Quick Install
 ```bash
 git clone https://github.com/Kishor-9361/VersionControlModels.git
 cd VersionControlModels
 
-# Create and activate a virtual environment
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
@@ -85,8 +99,7 @@ source venv/bin/activate
 pip install -e .
 ```
 
-Verify that the CLI is accessible:
-
+Verify installation:
 ```bash
 vcm --version
 vcm --help
@@ -94,321 +107,206 @@ vcm --help
 
 ---
 
-## Quick Start Workflow
+## Quick Start (5-Minute Walkthrough)
 
 ### 1. Initialize VCM in Your Project
-
-Navigate to your ML project directory and run:
-
 ```bash
 vcm init
 ```
 
-This initializes:
-- `.vcmconfig.yaml`: Project configuration settings.
-- `.vcm/vcm.db`: Local SQLite metadata index.
-- `models/`: Default directory for trained model artifacts.
-
-### 2. Track a Training Run
-
-Run your existing training script through `vcm train`. VCM executes the script and automatically captures the code commit, data hashes, metrics, and environment:
-
+### 2. Track Model Training
+Execute your existing training script through VCM to automatically capture Model DNA:
 ```bash
-vcm train --model-name "my_model_v1" \
-          --dataset "data/train.csv" \
-          --script "train.py" \
-          --metrics "metrics.json" \
-          --model-file "models/my_model_v1.pkl" \
-          --params learning_rate=0.01 batch_size=32 epochs=50
+vcm train --model-name iris_v1 \
+          --script train.py \
+          --dataset data/train.csv \
+          --metrics metrics.json \
+          --params n_estimators=50 max_depth=4 \
+          --reasoning "Baseline Random Forest on cleaned iris dataset"
 ```
 
-Output:
-```text
-Running training script: train.py ...
-[Script output]
+### 3. Manage Iterations with Sessions
+```bash
+# Start tracking a session
+vcm session start "hyperopt_run" --description "Tuning tree depth and count"
 
-Model tracked successfully.
-  Model:      my_model_v1
-  Accuracy:   94.2%
-  Git commit: a8f41b92c0192e8fa4d9b62ef05d15c7e39a018b
-  Dataset:    data/train.csv
-  Metadata:   models/my_model_v1.pkl.vcm.json
+# Train next iteration
+vcm train --model-name iris_v2 \
+          --script train.py \
+          --dataset data/train.csv \
+          --metrics metrics.json \
+          --params n_estimators=100 max_depth=6 \
+          --reasoning "Increased capacity to capture non-linear class boundaries"
+
+# End session
+vcm session end
+```
+
+### 4. View Model Evolution Timeline
+```bash
+# View progression in terminal
+vcm timeline --show-reasoning --highlight-best
+
+# Export standalone interactive HTML report with embedded SVG sparkline
+vcm timeline --format html --output ./timeline_report.html
+```
+
+### 5. Detect Performance Regressions
+```bash
+vcm timeline analyze --threshold 0.02 --report detailed
+```
+
+### 6. Compare Any Two Models Side-by-Side
+```bash
+vcm compare iris_v1 iris_v2
 ```
 
 ---
 
 ## CLI Command Reference
 
-| Command | Description | Example |
-| :--- | :--- | :--- |
-| `vcm init` | Initialize VCM configuration and database in the current project | `vcm init` |
-| `vcm train` | Execute a training script and record Model DNA | `vcm train --model-name m1 --script train.py` |
-| `vcm models` | List, query, and filter tracked models | `vcm models --best` |
-| `vcm lineage` | Render provenance tree for a model artifact | `vcm lineage models/model.pkl` |
-| `vcm compare` | Diff two models side-by-side with metric deltas | `vcm compare models/m1.pkl models/m2.pkl` |
-| `vcm info` | Display detailed metadata and environment configuration | `vcm info models/model.pkl` |
-| `vcm export` | Export model metadata to standalone JSON file or stdout | `vcm export models/model.pkl -o meta.json` |
-| `vcm repair` | Rebuild SQLite database from `.vcm.json` sidecar files | `vcm repair` |
+| Command | Description |
+| :--- | :--- |
+| `vcm init` | Initialize VCM workspace configuration and SQLite database index. |
+| `vcm train` | Wrap model training and capture code, data, metrics, and environment. |
+| `vcm models` | List, query, and filter tracked models by metric, dataset, or best performer. |
+| `vcm info` | Display complete Model DNA metadata for a specified model. |
+| `vcm compare` | Side-by-side comparative diff of two models across metrics, params, and code. |
+| `vcm lineage` | Render ASCII visual lineage tree connecting model to Git, DVC, and predecessor models. |
+| `vcm export` | Export model metadata to external JSON or stdout. |
+| `vcm repair` | Rebuild SQLite database index from disk `.vcm.json` sidecar files. |
+| `vcm session` | Manage development sessions (`start`, `end`, `list`, `info`, `logs`, `annotate`, `compare`, `export`). |
+| `vcm timeline` | Display model evolution timeline in Table, HTML, JSON, CSV, or ASCII format. |
+| `vcm timeline analyze`| Detect regressions, development gaps, and identify root causes. |
+| `vcm timeline reason` | Add or update developer reasoning notes for a model version. |
+| `vcm timeline-reason` | Standalone reasoning annotation command with `--force` and `--show`. |
+| `vcm analysis` | Comprehensive lineage analysis and production readiness recommendations. |
+| `vcm reproduce` | Deterministically rebuild and verify a model from its Model DNA metadata. |
+| `vcm deploy` | Deploy a model to `staging` or `production` and record audit log. |
+| `vcm audit` | Retrieve deployment audit trail for a target environment. |
+| `vcm mlflow` | Manage MLflow experiment tracking integration (`enable`, `disable`, `sync`, `experiments`, `runs`). |
+| `vcm config` | Inspect or update VCM workspace configuration (`show`, `set`, `reset`). |
+| `vcm version` | Display VCM software release and runtime details. |
+
+> For comprehensive documentation with all options and arguments, see **[docs/CLI.md](docs/CLI.md)**.
 
 ---
 
-## CLI Usage Examples
+## Python API Reference
 
-### Listing & Filtering Models (`vcm models`)
-
-Display all tracked models in a structured table:
-
-```bash
-vcm models
-```
-
-```text
-╭────────────────────┬────────────┬────────────┬──────────────────┬──────────────┬──────────────────╮
-│ Model Name         │ Accuracy   │ F1 Score   │ Dataset          │ Git Commit   │ Created At       │
-├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
-│ my_model_v2        │ 96.5%      │ 96.2%      │ data/train.csv   │ 55d5b5e6     │ 2026-09-09 15:30 │
-├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
-│ my_model_v1        │ 94.2%      │ 93.8%      │ data/train.csv   │ a8f41b92     │ 2026-09-09 14:15 │
-├────────────────────┼────────────┼────────────┼──────────────────┼──────────────┼──────────────────┤
-│ baseline_model_v0  │ 89.1%      │ 88.5%      │ data/train.csv   │ 427af932     │ 2026-09-09 11:00 │
-╰────────────────────┴────────────┴────────────┴──────────────────┴──────────────┴──────────────────╯
-
-Total: 3 models found
-```
-
-Filter by dataset, select top performers, or export:
-
-```bash
-# Filter models by dataset file or hash
-vcm models --dataset "data/train.csv"
-
-# Show only the top performing model
-vcm models --best
-
-# Export model catalog to CSV or JSON
-vcm models --export models_export.csv
-vcm models --format json --export models_export.json
-```
-
-### Lineage Provenance Tree (`vcm lineage`)
-
-Inspect the complete lineage tree connecting a model binary to its code commit, dataset files, hyperparameters, and environment:
-
-```bash
-vcm lineage models/my_model_v2.pkl
-```
-
-```text
-Model: my_model_v2 (models/my_model_v2.pkl)
-├── Accuracy: 0.9650 (96.5%) | F1 Score: 0.9620
-├── Git Commit: 55d5b5e6e72a5959108662acf4006d2a426c2d41
-│   ├── Branch: main
-│   ├── Remote: origin
-│   └── URL: https://github.com/Kishor-9361/VersionControlModels.git
-├── Dataset Files:
-│   ├── data/train.csv (hash: 84f2c9e782e4f012..., size: 14.2 MB)
-├── Hyperparameters:
-│   ├── learning_rate: 0.005
-│   ├── batch_size: 64
-│   ├── epochs: 100
-└── Trained by: ml-engineer on prod-cluster-01 (2026-09-09T15:30:00+00:00)
-```
-
-### Side-by-Side Model Comparison (`vcm compare`)
-
-Compare two model artifacts side-by-side with metric delta computation and parameter diffs:
-
-```bash
-vcm compare models/my_model_v1.pkl models/my_model_v2.pkl
-```
-
-```text
-Comparison: my_model_v1 vs my_model_v2
-╭──────────────────┬──────────────────┬──────────────────┬──────────────────╮
-│ Field / Metric   │ my_model_v1      │ my_model_v2      │ Delta / Change   │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ Accuracy         │ 94.2%            │ 96.5%            │ +2.3%            │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ F1_score         │ 93.8%            │ 96.2%            │ +2.4%            │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ Precision        │ 0.9400           │ 0.9640           │ +0.0240          │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ Recall           │ 0.9360           │ 0.9600           │ +0.0240          │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ Dataset          │ data/train.csv   │ data/train.csv   │ Same             │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ Git Commit       │ a8f41b92         │ 55d5b5e6         │ Different        │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ learning_rate    │ 0.01             │ 0.005            │ Changed          │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ batch_size       │ 32               │ 64               │ Changed          │
-├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│ epochs           │ 50               │ 100              │ Changed          │
-╰──────────────────┴──────────────────┴──────────────────┴──────────────────╯
-
-Model 'my_model_v2' outperforms 'my_model_v1':
-   - 2.3% higher accuracy
-```
-
-### Model Inspection & Export (`vcm info` & `vcm export`)
-
-```bash
-# View human-readable model summary
-vcm info models/my_model_v2.pkl
-
-# View or export raw JSON metadata
-vcm info models/my_model_v2.pkl --json
-vcm export models/my_model_v2.pkl --output metadata_export.json
-```
-
-### Ephemeral Recovery (`vcm repair`)
-
-If `.vcm/vcm.db` is accidentally removed or corrupted, run `vcm repair` to reconstruct the SQLite database from existing `.vcm.json` sidecar files:
-
-```bash
-rm .vcm/vcm.db
-vcm repair
-```
-
-```text
-Database repaired: Re-indexed 3 models.
-```
-
----
-
-## Python SDK Integration
-
-VCM can also be used directly within Python scripts and Jupyter notebooks:
-
-### Context Manager Mode
+VCM can be integrated directly into your Python scripts, pipelines, and Jupyter notebooks:
 
 ```python
 from vcm.trainer import ModelTracker
-import joblib
+from vcm.models.session import SessionTracker
+from vcm.models.timeline import TimelineStore
+from vcm.db.database import Database
 
-tracker = ModelTracker()
+# 1. Track a training session
+with SessionTracker(session_name="hyperopt_exp", user="alice") as session:
+    session.annotate("Testing higher learning rate and tree depth")
+    
+    tracker = ModelTracker()
+    tracker.log_model(
+        model_path="models/iris_v2.pkl",
+        model_name="iris_v2",
+        metrics={"accuracy": 0.98},
+        hyperparameters={"n_estimators": 50, "max_depth": 5},
+        reasoning="Ensemble depth increased for higher recall",
+    )
 
-with tracker.track(
-    model_name="my_model_v3",
-    model_path="models/my_model_v3.pkl",
-    hyperparameters={"learning_rate": 0.001, "batch_size": 128},
-    dataset_path="data/train.csv",
-) as session:
-    # 1. Train model
-    model.fit(X_train, y_train)
-    
-    # 2. Evaluate
-    acc = accuracy_score(y_test, model.predict(X_test))
-    
-    # 3. Save model binary
-    joblib.dump(model, "models/my_model_v3.pkl")
-    
-    # 4. Attach evaluation metrics
-    session.set_metrics({"accuracy": acc, "f1_score": 0.958})
+# 2. Inspect progression timeline & regressions
+db = Database()
+store = TimelineStore(db)
+timeline = store.get_model_timeline()
+regressions = store.detect_regressions(threshold=0.01)
 ```
 
-### Direct Logging Mode
-
-```python
-from vcm.trainer import ModelTracker
-
-tracker = ModelTracker()
-
-metadata = tracker.log_model(
-    model_path="models/my_model_prod.pkl",
-    model_name="my_model_prod_v1",
-    metrics={"accuracy": 0.952, "loss": 0.048},
-    hyperparameters={"batch_size": 64, "learning_rate": 0.001},
-    dataset_path="data/train.csv",
-)
-```
+> For the full Python API specification, see **[docs/API.md](docs/API.md)**.
 
 ---
 
-## Model DNA Sidecar Specification
+## Documentation Directory
 
-Each model artifact has a corresponding `.vcm.json` sidecar file adhering to this specification:
+The repository includes a complete documentation library:
 
-```json
-{
-  "schema_version": "1.0.0",
-  "model_name": "my_model_v2",
-  "model_file": "models/my_model_v2.pkl",
-  "model_hash": "sha256:31f721cc48842a26a2428365962721c86000159368ebb0f656eb87bb69d58143",
-  "created_at": "2026-09-09T15:30:00.000000+00:00",
-  "code": {
-    "git_commit": "55d5b5e6e72a5959108662acf4006d2a426c2d41",
-    "git_branch": "main",
-    "git_remote": "origin",
-    "git_url": "https://github.com/Kishor-9361/VersionControlModels.git",
-    "is_dirty": false
-  },
-  "data": {
-    "dvc_files": [
-      {
-        "path": "data/train.csv",
-        "dvc_hash": "84f2c9e782e4f012a91f58b0931215b2",
-        "size_bytes": 14200000
-      }
-    ]
-  },
-  "training": {
-    "timestamp": "2026-09-09T15:30:00.000000+00:00",
-    "duration_seconds": 12.45,
-    "user": "ml-engineer",
-    "hostname": "prod-cluster-01"
-  },
-  "hyperparameters": {
-    "learning_rate": 0.005,
-    "batch_size": 64,
-    "epochs": 100
-  },
-  "metrics": {
-    "accuracy": 0.965,
-    "f1_score": 0.962
-  },
-  "environment": {
-    "python_version": "3.12.0",
-    "libraries": {
-      "scikit-learn": "1.5.0",
-      "pandas": "2.2.0",
-      "numpy": "1.26.0"
-    }
-  }
-}
-```
+- **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**: End-to-end practical walkthrough and tutorials.
+- **[docs/CLI.md](docs/CLI.md)**: Full command-line reference with all arguments and examples.
+- **[docs/API.md](docs/API.md)**: Complete Python class and method reference.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System design, database schemas, and data flow models.
+- **[docs/specs/README.md](docs/specs/README.md)**: Archive of Phase 1, Phase 2, and Phase 3 specifications and test strategies.
 
 ---
 
-## Development & Testing
+## Test Suite & Quality Gates
 
-To run the automated test suite locally:
+VCM enforces strict enterprise engineering standards:
 
 ```bash
-# Run pytest
-pytest vcm/tests/ -v
+# Run all 164 tests with coverage
+pytest vcm/tests/ --cov=vcm --cov-report=term-missing
 
-# Run static type checking
-mypy vcm/
+# Strict static type check
+mypy vcm/ --strict
 
-# Run linter
-flake8 vcm/ --max-line-length=140
+# PEP8 style and line length check
+flake8 vcm/ --max-line-length=120
+```
+
+### Quality Scorecard
+- **Test Suite**: **164 / 164 tests passing** (100%)
+- **Test Coverage**: **91% overall coverage** (Timeline & MLflow models: 93%–100%)
+- **Static Typing**: **0 errors** across all 75 source files (`mypy --strict`)
+- **Linting**: **0 violations** (`flake8 --max-line-length=120`)
+- **Query Performance**: **< 4 ms** for 1,000 models on local SQLite
+
+---
+
+## Project Structure
+
+```
+VersionControl/
+├── docs/                                  # Complete documentation suite
+│   ├── CLI.md                             # Complete CLI command reference
+│   ├── API.md                             # Python API documentation
+│   ├── ARCHITECTURE.md                    # Architecture & schema design
+│   ├── USER_GUIDE.md                      # Step-by-step user tutorial
+│   ├── MLFLOW_INTEGRATION.md              # MLflow integration & tracking guide
+│   ├── CLI_TESTING_GUIDE.md               # End-to-end CLI command verification guide
+│   ├── TERMINAL_COMMAND_EXECUTION_REPORT.md # Technical command execution report & analysis
+│   ├── EXACT_TERMINAL_SESSION.md          # Complete verbatim terminal execution transcript
+│   ├── EXACT_TERMINAL_SESSION_CORRECTED.md # Validated & corrected terminal session transcript
+│   ├── TERMINAL_SESSION_ANALYSIS_REPORT.md # Comprehensive 14-point terminal session audit
+│   ├── TERMINAL_SESSION_SUMMARY.md        # Executive summary of terminal inconsistencies & resolutions
+│   ├── 00_COMPLETE_DELIVERABLES_INDEX.md  # Master deliverable and documentation index
+│   └── specs/                             # Specifications (Phase 1, 2, 3)
+├── vcm/                                   # Core VCM package
+│   ├── cli/                               # CLI command groups (click)
+│   ├── db/                                # SQLite database storage & migrations
+│   ├── integrations/                      # Git, DVC & MLflow connectors
+│   ├── models/                            # Domain models (Metadata, Session, Evolution)
+│   ├── utils/                             # Visual formatters, terminal logger, helpers
+│   └── tests/                             # 164 test cases (unit, cli, integration, advanced)
+├── examples/                              # Runnable training examples and scripts
+│   └── train_sample.py                    # Sample training script capturing Model DNA
+├── ml_project_demo/                       # Isolated demo ML project & end-to-end command verification
+├── pyproject.toml                         # Packaging, dependencies & tool configs
+├── setup.py                               # Setup script
+├── .gitignore                             # Git ignore configuration
+├── LICENSE                                # MIT License
+└── README.md                              # Main project documentation
 ```
 
 ---
 
-## Contributing
+## Author
 
-Contributions are welcome. To contribute:
-
-1. Fork the repository on GitHub.
-2. Create a feature branch (`git checkout -b feature/new-capability`).
-3. Implement your changes with corresponding test coverage.
-4. Ensure all tests and linters pass (`pytest`, `mypy`, `flake8`).
-5. Open a Pull Request.
+**Kishor Veeraragavan**
+- GitHub: [@Kishor-9361](https://github.com/Kishor-9361)
+- Repository: [VersionControlModels](https://github.com/Kishor-9361/VersionControlModels)
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

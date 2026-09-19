@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
+if TYPE_CHECKING:
+    from vcm.models.session import SessionInfo
 
 
 class ValidationError(Exception):
@@ -168,6 +171,11 @@ class MetadataModel:
     environment: EnvironmentInfo = field(default_factory=EnvironmentInfo)
     metadata_version: str = "1.0"
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    session: Optional[SessionInfo] = None
+    session_annotations: List[Dict[str, Any]] = field(default_factory=list)
+    changes_from_previous: Optional[Dict[str, Any]] = None
+    reasoning: Optional[str] = None
+    evolution: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         if not self.model_name or not isinstance(self.model_name, str) or not self.model_name.strip():
@@ -193,7 +201,7 @@ class MetadataModel:
             if isinstance(self.created_at, datetime)
             else str(self.created_at)
         )
-        return {
+        d: Dict[str, Any] = {
             "model_name": self.model_name,
             "model_hash": self.model_hash,
             "model_file": self.model_file,
@@ -206,6 +214,25 @@ class MetadataModel:
             "metadata_version": self.metadata_version,
             "created_at": created_str,
         }
+        if self.session is not None:
+            d["session"] = self.session.to_dict()
+        if self.session_annotations:
+            d["session_annotations"] = list(self.session_annotations)
+        if self.changes_from_previous is not None:
+            d["changes_from_previous"] = dict(self.changes_from_previous)
+        if self.reasoning is not None:
+            d["reasoning"] = self.reasoning
+        if self.evolution is not None:
+            d["evolution"] = dict(self.evolution)
+        return d
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow dictionary-style subscripting for test compatibility."""
+        return self.to_dict()[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Allow dictionary-style get for test compatibility."""
+        return self.to_dict().get(key, default)
 
     def to_json(self, indent: int = 2) -> str:
         """Serialize metadata object to JSON string."""
@@ -229,6 +256,13 @@ class MetadataModel:
         else:
             created_at = datetime.now(timezone.utc)
 
+        session_data = data.get("session")
+        if session_data:
+            from vcm.models.session import SessionInfo
+            session_info = SessionInfo.from_dict(session_data)
+        else:
+            session_info = None
+
         return cls(
             model_name=data.get("model_name", ""),
             model_hash=data.get("model_hash", ""),
@@ -241,6 +275,11 @@ class MetadataModel:
             environment=EnvironmentInfo.from_dict(data.get("environment")),
             metadata_version=str(data.get("metadata_version", "1.0")),
             created_at=created_at,
+            session=session_info,
+            session_annotations=list(data.get("session_annotations", [])),
+            changes_from_previous=data.get("changes_from_previous"),
+            reasoning=data.get("reasoning"),
+            evolution=data.get("evolution"),
         )
 
     @classmethod

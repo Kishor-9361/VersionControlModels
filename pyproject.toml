@@ -9,7 +9,7 @@ description = "VCM - Model DNA Version Control Platform"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "VCM Team" }]
+authors = [{ name = "Kishor Veeraragavan" }]
 dependencies = [
     "click>=8.0.0",
     "pyyaml>=6.0.0",
@@ -17,12 +17,19 @@ dependencies = [
     "GitPython>=3.1.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Kishor-9361/VersionControlModels"
+Repository = "https://github.com/Kishor-9361/VersionControlModels"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "flake8>=6.0.0",
     "mypy>=1.0.0",
+]
+mlflow = [
+    "mlflow>=2.0.0",
 ]
 
 [project.scripts]
@@ -32,9 +39,12 @@ vcm = "vcm.cli.main:cli"
 testpaths = ["vcm/tests"]
 python_files = ["test_*.py"]
 addopts = "-v"
+filterwarnings = [
+    "ignore:.*isolated_filesystem.*:DeprecationWarning",
+]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -47,8 +57,17 @@ warn_unused_ignores = true
 exclude = ["venv", "build", "dist"]
 
 [[tool.mypy.overrides]]
+module = [
+    "sklearn.*",
+    "pandas.*",
+    "numpy.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "vcm.tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
 warn_unused_ignores = false
+ignore_missing_imports = true

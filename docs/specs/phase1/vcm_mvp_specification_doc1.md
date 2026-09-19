@@ -1,40 +1,40 @@
 # VCM (Version Control Models) - MVP Specification
 
-**Project:** Model DNA Version Control Platform  
-**Version:** 1.0.0-MVP  
-**Status:** Ready for Agent Development  
-**Target Launch:** 4 weeks  
+**Project:** Model DNA Version Control Platform 
+**Version:** 1.0.0-MVP 
+**Status:** Ready for Agent Development 
+**Target Launch:** 4 weeks 
 
 ---
 
 ## 1. MVP SCOPE (TIGHT - NO FEATURE CREEP)
 
-### ✅ IN SCOPE
+### [x] IN SCOPE
 
 #### 1.1 Core Feature: Model Metadata Capture
 - **What:** When user trains and saves a model, automatically capture:
-  - Git commit hash (current HEAD)
-  - DVC tracked files & their hashes
-  - Training metrics (from JSON file or dictionary)
-  - Timestamp & user info
-  - Hyperparameters (if provided)
-  - Environment info (Python version, key libraries)
+ - Git commit hash (current HEAD)
+ - DVC tracked files & their hashes
+ - Training metrics (from JSON file or dictionary)
+ - Timestamp & user info
+ - Hyperparameters (if provided)
+ - Environment info (Python version, key libraries)
 
 #### 1.2 Storage Layer
 - **What:** 
-  - Store metadata as `.vcm.json` files (attached to models)
-  - Index metadata in SQLite database for querying
-  - Keep it portable: JSON serializable, no custom binary formats
+ - Store metadata as `.vcm.json` files (attached to models)
+ - Index metadata in SQLite database for querying
+ - Keep it portable: JSON serializable, no custom binary formats
 
 #### 1.3 CLI Commands (MVP Set)
 ```
-vcm init                          # Initialize in project
-vcm train <args>                  # Wrap training + auto-capture
-vcm models [filters]              # List all tracked models
-vcm lineage <model.pkl>          # Show full lineage
-vcm compare <model1> <model2>    # Compare two models
-vcm info <model.pkl>             # Show model metadata
-vcm export <model.pkl>           # Export metadata
+vcm init # Initialize in project
+vcm train <args> # Wrap training + auto-capture
+vcm models [filters] # List all tracked models
+vcm lineage <model.pkl> # Show full lineage
+vcm compare <model1> <model2> # Compare two models
+vcm info <model.pkl> # Show model metadata
+vcm export <model.pkl> # Export metadata
 ```
 
 #### 1.4 Integration (Minimal, Proven)
@@ -42,7 +42,7 @@ vcm export <model.pkl>           # Export metadata
 - **DVC:** Query dvc.api for tracked file versions
 - **Metrics:** Read from JSON files (user provides path)
 
-### ❌ OUT OF SCOPE (Phase 2+)
+### [FAIL] OUT OF SCOPE (Phase 2+)
 
 - Model serving/deployment
 - Web UI (CLI only for MVP)
@@ -67,15 +67,15 @@ vcm export <model.pkl>           # Export metadata
 ### 2.2 File Structure
 ```
 my_ml_project/
-├── .vcmconfig.yaml          # VCM config
-├── .vcm/                    # VCM metadata directory
-│   └── vcm.db              # SQLite index
+├── .vcmconfig.yaml # VCM config
+├── .vcm/ # VCM metadata directory
+│ └── vcm.db # SQLite index
 ├── models/
-│   ├── model_v1.pkl
-│   ├── model_v1.pkl.vcm.json  # Metadata attached to model
-│   ├── model_v2.pkl
-│   └── model_v2.pkl.vcm.json
-├── data/                    # DVC tracked
+│ ├── model_v1.pkl
+│ ├── model_v1.pkl.vcm.json # Metadata attached to model
+│ ├── model_v2.pkl
+│ └── model_v2.pkl.vcm.json
+├── data/ # DVC tracked
 ├── train.py
 └── .git/
 ```
@@ -83,60 +83,60 @@ my_ml_project/
 ### 2.3 Metadata Schema (JSON Format)
 ```json
 {
-  "model_name": "emotion_classifier_v2",
-  "model_hash": "sha256:abc123...",
-  "model_file": "models/emotion_classifier_v2.pkl",
-  
-  "code": {
-    "git_commit": "abc123def456",
-    "git_branch": "main",
-    "git_remote": "origin",
-    "git_url": "https://github.com/user/repo"
-  },
-  
-  "data": {
-    "dvc_files": [
-      {
-        "path": "data/train.csv",
-        "dvc_hash": "xyz789...",
-        "size_bytes": 1024000,
-        "timestamp": "2024-01-15T10:30:00Z"
-      }
-    ]
-  },
-  
-  "training": {
-    "timestamp": "2024-01-15T10:45:32Z",
-    "duration_seconds": 3600,
-    "user": "alice",
-    "hostname": "ml-workstation-1"
-  },
-  
-  "hyperparameters": {
-    "learning_rate": 0.001,
-    "epochs": 50,
-    "batch_size": 32,
-    "random_seed": 42
-  },
-  
-  "metrics": {
-    "accuracy": 0.942,
-    "precision": 0.921,
-    "recall": 0.935,
-    "f1_score": 0.928
-  },
-  
-  "environment": {
-    "python_version": "3.9.1",
-    "libraries": {
-      "torch": "2.0.1",
-      "scikit-learn": "1.2.0",
-      "pandas": "2.0.0"
-    }
-  },
-  
-  "metadata_version": "1.0",
-  "created_at": "2024-01-15T10:45:32Z"
+ "model_name": "emotion_classifier_v2",
+ "model_hash": "sha256:abc123...",
+ "model_file": "models/emotion_classifier_v2.pkl",
+ 
+ "code": {
+ "git_commit": "abc123def456",
+ "git_branch": "main",
+ "git_remote": "origin",
+ "git_url": "https://github.com/user/repo"
+ },
+ 
+ "data": {
+ "dvc_files": [
+ {
+ "path": "data/train.csv",
+ "dvc_hash": "xyz789...",
+ "size_bytes": 1024000,
+ "timestamp": "2024-01-15T10:30:00Z"
+ }
+ ]
+ },
+ 
+ "training": {
+ "timestamp": "2024-01-15T10:45:32Z",
+ "duration_seconds": 3600,
+ "user": "alice",
+ "hostname": "ml-workstation-1"
+ },
+ 
+ "hyperparameters": {
+ "learning_rate": 0.001,
+ "epochs": 50,
+ "batch_size": 32,
+ "random_seed": 42
+ },
+ 
+ "metrics": {
+ "accuracy": 0.942,
+ "precision": 0.921,
+ "recall": 0.935,
+ "f1_score": 0.928
+ },
+ 
+ "environment": {
+ "python_version": "3.9.1",
+ "libraries": {
+ "torch": "2.0.1",
+ "scikit-learn": "1.2.0",
+ "pandas": "2.0.0"
+ }
+ },
+ 
+ "metadata_version": "1.0",
+ "created_at": "2024-01-15T10:45:32Z"
 }
 ```
 
@@ -144,18 +144,18 @@ my_ml_project/
 ```sql
 -- Models table
 CREATE TABLE models (
-  id INTEGER PRIMARY KEY,
-  model_name TEXT NOT NULL,
-  model_file TEXT NOT NULL,
-  model_hash TEXT UNIQUE,
-  accuracy REAL,
-  f1_score REAL,
-  git_commit TEXT,
-  git_branch TEXT,
-  dataset_hash TEXT,
-  training_timestamp DATETIME,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  metadata_json TEXT  -- Full metadata as JSON
+ id INTEGER PRIMARY KEY,
+ model_name TEXT NOT NULL,
+ model_file TEXT NOT NULL,
+ model_hash TEXT UNIQUE,
+ accuracy REAL,
+ f1_score REAL,
+ git_commit TEXT,
+ git_branch TEXT,
+ dataset_hash TEXT,
+ training_timestamp DATETIME,
+ created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+ metadata_json TEXT -- Full metadata as JSON
 );
 
 -- Index for fast queries
@@ -174,16 +174,16 @@ CREATE INDEX idx_dataset_hash ON models(dataset_hash);
 User calls: vcm train --model-name "classifier_v2" --dataset "data/train_v2.1" --script train.py --metrics metrics.json
 
 VCM:
-  1. Capture Git state: git_commit = current HEAD
-  2. Capture DVC state: dvc_files = get_dvc_tracked_files()
-  3. Capture environment: python_version, libraries
-  4. Run user's train.py
-  5. Wait for model file output
-  6. Read metrics from metrics.json
-  7. Create metadata JSON
-  8. Save as model_name.pkl.vcm.json
-  9. Insert into SQLite
-  10. Print: ✅ Model tracked successfully
+ 1. Capture Git state: git_commit = current HEAD
+ 2. Capture DVC state: dvc_files = get_dvc_tracked_files()
+ 3. Capture environment: python_version, libraries
+ 4. Run user's train.py
+ 5. Wait for model file output
+ 6. Read metrics from metrics.json
+ 7. Create metadata JSON
+ 8. Save as model_name.pkl.vcm.json
+ 9. Insert into SQLite
+ 10. Print: [x] Model tracked successfully
 ```
 
 ### 3.2 Query Flow (vcm models)
@@ -191,9 +191,9 @@ VCM:
 User calls: vcm models --dataset "data/train_v2.1" --best --limit 5
 
 VCM:
-  1. Query SQLite WHERE dataset_hash = "..." ORDER BY accuracy DESC LIMIT 5
-  2. Fetch matching model metadata
-  3. Display formatted table
+ 1. Query SQLite WHERE dataset_hash = "..." ORDER BY accuracy DESC LIMIT 5
+ 2. Fetch matching model metadata
+ 3. Display formatted table
 ```
 
 ### 3.3 Lineage Flow (vcm lineage)
@@ -201,9 +201,9 @@ VCM:
 User calls: vcm lineage models/emotion_classifier_v2.pkl
 
 VCM:
-  1. Find emotion_classifier_v2.pkl.vcm.json
-  2. Read metadata from JSON
-  3. Display formatted lineage tree
+ 1. Find emotion_classifier_v2.pkl.vcm.json
+ 2. Read metadata from JSON
+ 3. Display formatted lineage tree
 ```
 
 ---
@@ -225,7 +225,7 @@ VCM:
 
 ## 5. SUCCESS CRITERIA (MVP Definition of Done)
 
-### ✅ Functional Requirements
+### [x] Functional Requirements
 - [ ] `vcm init` works without errors
 - [ ] `vcm train` captures all metadata correctly
 - [ ] `vcm models` returns results in <100ms for <100 models
@@ -233,23 +233,23 @@ VCM:
 - [ ] `vcm compare` shows diffs between two models
 - [ ] All 6 commands work end-to-end with test data
 
-### ✅ Data Integrity
+### [x] Data Integrity
 - [ ] Model metadata is immutable (write-once)
 - [ ] No data loss on Git/DVC version changes
 - [ ] Metadata survives model file deletion
 - [ ] Database corruption recovery plan exists
 
-### ✅ Testing
+### [x] Testing
 - [ ] >80% code coverage
 - [ ] All edge cases covered (see test spec)
 - [ ] E2E test on real project scenario
 
-### ✅ Documentation
+### [x] Documentation
 - [ ] README with quick start
 - [ ] CLI help text for all commands
 - [ ] Example workflow documented
 
-### ✅ Production-Readiness
+### [x] Production-Readiness
 - [ ] Error messages are actionable
 - [ ] Graceful degradation (works even if DVC not installed)
 - [ ] Version compatibility checked (Python 3.9+)

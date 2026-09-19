@@ -23,6 +23,7 @@ from vcm.models.metadata import (
     MetadataModel,
     TrainingInfo,
 )
+from vcm.models.session import SessionInfo, SessionTracker
 from vcm.utils.environment import EnvironmentCapture
 from vcm.utils.hashing import compute_file_hash
 from vcm.utils.metrics_loader import MetricsLoader
@@ -33,7 +34,13 @@ logger = logging.getLogger(__name__)
 class TrackingSession:
     """Active training tracking session inside context manager."""
 
-    def __init__(self, tracker: ModelTracker, model_name: str, model_path: str, hyperparameters: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        tracker: ModelTracker,
+        model_name: str,
+        model_path: str,
+        hyperparameters: Optional[Dict[str, Any]] = None,
+    ) -> None:
         self.tracker = tracker
         self.model_name = model_name
         self.model_path = model_path
@@ -94,6 +101,7 @@ class ModelTracker:
         hyperparameters: Optional[Dict[str, Any]] = None,
         dataset_path: Optional[str] = None,
         duration_seconds: Optional[float] = None,
+        reasoning: Optional[str] = None,
     ) -> MetadataModel:
         """Capture metadata, create .vcm.json file, and insert into SQLite database."""
         abs_model_path = os.path.abspath(model_path) if not os.path.isabs(model_path) else model_path
@@ -133,6 +141,91 @@ class ModelTracker:
         parsed_metrics = MetricsLoader.from_dict(metrics or {})
         parsed_hyperparams = dict(hyperparameters or {})
 
+        # Active session handling
+        session_info: Optional[SessionInfo] = None
+        session_annotations: List[Dict[str, Any]] = []
+        changes_from_prev: Optional[Dict[str, Any]] = None
+
+        active_tracker = SessionTracker.get_active_session(repo_path=self.repo_path)
+        if active_tracker is not None:
+            prev_model_name = active_tracker.last_model_name
+            pos = len(active_tracker.session.models_trained) + 1
+            session_info = SessionInfo(
+                session_id=active_tracker.session_id,
+                session_name=active_tracker.session_name,
+                session_start=active_tracker.session.start_time.isoformat(),
+                position_in_session=pos,
+                previous_model=prev_model_name,
+                previous_model_in_session=prev_model_name,
+                session_best_model=active_tracker.session.best_model,
+            )
+            session_annotations = [a.to_dict() for a in active_tracker.session.annotations]
+
+            # If previous model exists, update previous model's next_model link
+            if prev_model_name:
+                prev_meta = self.db.get_model_by_name(prev_model_name)
+                if prev_meta is not None:
+                    updated_prev_session = None
+                    if prev_meta.session is not None:
+                        prev_d = prev_meta.session.to_dict()
+                        prev_d["next_model"] = model_name
+                        prev_d["next_model_in_session"] = model_name
+                        updated_prev_session = SessionInfo.from_dict(prev_d)
+                    else:
+                        updated_prev_session = SessionInfo(
+                            session_id=active_tracker.session_id,
+                            session_name=active_tracker.session_name,
+                            next_model=model_name,
+                            next_model_in_session=model_name,
+                        )
+
+                    new_prev_meta = MetadataModel(
+                        model_name=prev_meta.model_name,
+                        model_hash=prev_meta.model_hash,
+                        model_file=prev_meta.model_file,
+                        code=prev_meta.code,
+                        data=prev_meta.data,
+                        training=prev_meta.training,
+                        hyperparameters=prev_meta.hyperparameters,
+                        metrics=prev_meta.metrics,
+                        environment=prev_meta.environment,
+                        metadata_version=prev_meta.metadata_version,
+                        created_at=prev_meta.created_at,
+                        session=updated_prev_session,
+                        session_annotations=prev_meta.session_annotations,
+                        changes_from_previous=prev_meta.changes_from_previous,
+                    )
+                    prev_id = self.db.get_model_id_by_hash(prev_meta.model_hash)
+                    if prev_id is not None:
+                        self.db.update_model(prev_id, new_prev_meta)
+
+                    prev_file_path = os.path.join(self.repo_path, f"{prev_meta.model_file}.vcm.json")
+                    if os.path.exists(prev_file_path):
+                        try:
+                            with open(prev_file_path, "w", encoding="utf-8") as pf:
+                                pf.write(new_prev_meta.to_json())
+                        except Exception:
+                            pass
+
+                    alt_prev_json = f"{prev_meta.model_name}.pkl.vcm.json"
+                    if os.path.exists(alt_prev_json):
+                        try:
+                            with open(alt_prev_json, "w", encoding="utf-8") as pf:
+                                pf.write(new_prev_meta.to_json())
+                        except Exception:
+                            pass
+
+                    changes_from_prev = {
+                        "hyperparameters": {
+                            k: f"{prev_meta.hyperparameters.get(k)} -> {v}"
+                            for k, v in parsed_hyperparams.items()
+                            if prev_meta.hyperparameters.get(k) != v
+                        },
+                        "code": {
+                            "git_commit": f"{prev_meta.code.git_commit} -> {code_info.git_commit}",
+                        },
+                    }
+
         metadata = MetadataModel(
             model_name=model_name,
             model_hash=model_hash,
@@ -143,6 +236,10 @@ class ModelTracker:
             hyperparameters=parsed_hyperparams,
             metrics=parsed_metrics,
             environment=env_info,
+            session=session_info,
+            session_annotations=session_annotations,
+            changes_from_previous=changes_from_prev,
+            reasoning=reasoning,
         )
 
         # Save .vcm.json attached to the model file
@@ -154,8 +251,38 @@ class ModelTracker:
         existing_id = self.db.get_model_id_by_hash(model_hash)
         if existing_id is not None:
             self.db.update_model(existing_id, metadata)
+            inserted_id = existing_id
         else:
-            self.db.insert_model(metadata)
+            inserted_id = self.db.insert_model(metadata)
+
+        if reasoning and inserted_id is not None:
+            try:
+                self.db.add_reasoning(
+                    inserted_id,
+                    reasoning=reasoning,
+                    user=training_info.user or "",
+                    force=True,
+                )
+            except Exception:
+                pass
+
+        # Log into active session if active
+        if active_tracker is not None:
+            active_tracker.log_model(
+                model_meta=metadata,
+                model_name=model_name,
+                metrics=parsed_metrics,
+            )
+            if inserted_id is not None:
+                try:
+                    pos = session_info.position_in_session if session_info and session_info.position_in_session else 1
+                    self.db.link_model_to_session(
+                        active_tracker.session_id,
+                        inserted_id,
+                        position=pos,
+                    )
+                except Exception:
+                    pass
 
         return metadata
 
@@ -224,6 +351,7 @@ class ModelTracker:
         params: Optional[List[str]] = None,
         model_file: Optional[str] = None,
         output_dir: Optional[str] = None,
+        reasoning: Optional[str] = None,
     ) -> MetadataModel:
         """Execute user's training script as subprocess and capture all outputs & metadata."""
         abs_script = os.path.abspath(script_path) if not os.path.isabs(script_path) else script_path
@@ -235,8 +363,17 @@ class ModelTracker:
 
         start_time = time.time()
 
-        # Run user's training script
+        # Run user's training script with forwarded flags and hyperparameters
         cmd = [sys.executable, abs_script]
+        expected_output = model_file or os.path.join(self.config.models_dir, f"{model_name}.pkl")
+        cmd.extend(["--output", expected_output])
+        if dataset:
+            cmd.extend(["--dataset", dataset])
+        if metrics_path:
+            cmd.extend(["--metrics-out", metrics_path])
+        for k, v in hyperparameters.items():
+            cmd.extend([f"--{k.replace('_', '-')}", str(v)])
+
         proc = subprocess.run(cmd, cwd=self.repo_path, capture_output=False)
         if proc.returncode != 0:
             raise RuntimeError(f"Training script {script_path} failed with exit code {proc.returncode}")
@@ -279,4 +416,5 @@ class ModelTracker:
             hyperparameters=hyperparameters,
             dataset_path=dataset,
             duration_seconds=duration,
+            reasoning=reasoning,
         )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Optional
+from typing import Any, Optional
 
 try:
     import git
@@ -128,3 +128,25 @@ class GitClient:
         except Exception as exc:
             logger.warning("Git metadata extraction failed gracefully: %s", exc)
             return CodeInfo()
+
+    def get_diff(self, commit1: str, commit2: str) -> dict[str, Any]:
+        """Compute git diff between two commits."""
+        try:
+            repo = self._get_repo()
+            c1 = repo.commit(commit1)
+            c2 = repo.commit(commit2)
+            diff_index = c1.diff(c2)
+            files_changed = [d.a_path or d.b_path for d in diff_index if d.a_path or d.b_path]
+            return {
+                "commit1": commit1,
+                "commit2": commit2,
+                "files_changed": files_changed,
+            }
+        except Exception:
+            return {"commit1": commit1, "commit2": commit2, "files_changed": []}
+
+
+def get_git_diff(commit1: str, commit2: str, repo_path: str = ".") -> dict[str, Any]:
+    """Helper function to get git diff between two commits."""
+    client = GitClient(repo_path=repo_path)
+    return client.get_diff(commit1, commit2)

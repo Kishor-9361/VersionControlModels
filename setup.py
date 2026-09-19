@@ -4,7 +4,8 @@ setup(
     name="vcm-ml",
     version="1.0.0",
     description="VCM - Model DNA Version Control Platform",
-    author="VCM Team",
+    author="Kishor Veeraragavan",
+    url="https://github.com/Kishor-9361/VersionControlModels",
     packages=find_packages(include=["vcm", "vcm.*"]),
     python_requires=">=3.9",
     install_requires=[
@@ -19,6 +20,9 @@ setup(
             "pytest-cov>=4.0.0",
             "flake8>=6.0.0",
             "mypy>=1.0.0",
+        ],
+        "mlflow": [
+            "mlflow>=2.0.0",
         ],
     },
     entry_points={

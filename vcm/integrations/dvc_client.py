@@ -150,23 +150,36 @@ class DVCClient:
         """Create a DataInfo object representing DVC-tracked datasets or a specific dataset path."""
         dvc_files = self.get_tracked_files()
 
-        # If a specific dataset was passed and not yet in dvc_files, add it
+        # If a specific dataset was passed, ensure it is prioritized at index 0 (primary dataset)
         if dataset_path:
             norm_target = os.path.normpath(dataset_path)
-            already_tracked = any(os.path.normpath(f.path) == norm_target for f in dvc_files)
-            if not already_tracked:
-                full_path = os.path.join(self.repo_path, dataset_path) if not os.path.isabs(dataset_path) else dataset_path
+            already_tracked_idx: Optional[int] = None
+            for idx, f in enumerate(dvc_files):
+                if os.path.normpath(f.path) == norm_target:
+                    already_tracked_idx = idx
+                    break
+
+            if already_tracked_idx is not None:
+                selected = dvc_files.pop(already_tracked_idx)
+                dvc_files.insert(0, selected)
+            else:
+                full_path = (
+                    os.path.join(self.repo_path, dataset_path)
+                    if not os.path.isabs(dataset_path)
+                    else dataset_path
+                )
                 if os.path.exists(full_path):
                     h = self.get_file_hash(full_path) or ""
                     size = os.path.getsize(full_path) if os.path.isfile(full_path) else 0
                     mtime = os.path.getmtime(full_path)
-                    dvc_files.append(
+                    dvc_files.insert(
+                        0,
                         DVCFileInfo(
                             path=dataset_path,
                             dvc_hash=h,
                             size_bytes=size,
                             timestamp=datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
-                        )
+                        ),
                     )
 
         return DataInfo(dvc_files=dvc_files)
