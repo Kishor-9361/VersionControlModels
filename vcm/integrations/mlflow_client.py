@@ -13,6 +13,10 @@ from typing import Any, Dict, List, Optional
 from vcm.config import VCMConfig
 from vcm.models.metadata import MetadataModel
 
+# Ensure MLflow 3.x+ behaves cleanly with local filesystem and does not print noisy agent hints
+os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
 
 class MLflowClient:
     """Client for logging VCM Model DNA into MLflow tracking servers or local directories."""
@@ -38,14 +42,21 @@ class MLflowClient:
         except ImportError:
             return False
 
-    def sync_model(self, meta: MetadataModel, run_name: Optional[str] = None) -> Dict[str, Any]:
+    def sync_model(
+        self,
+        meta: MetadataModel,
+        run_name: Optional[str] = None,
+        force_offline: bool = False,
+    ) -> Dict[str, Any]:
         """Sync a VCM model metadata record to MLflow."""
-        if self.is_sdk_installed():
+        if not force_offline and self.is_sdk_installed():
             return self._sync_with_sdk(meta, run_name=run_name)
         return self._sync_offline(meta, run_name=run_name)
 
     def _sync_with_sdk(self, meta: MetadataModel, run_name: Optional[str] = None) -> Dict[str, Any]:
         """Sync model using native MLflow Python library."""
+        os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+        os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
         mlflow: Any = importlib.import_module("mlflow")
 
         mlflow.set_tracking_uri(self.tracking_uri)

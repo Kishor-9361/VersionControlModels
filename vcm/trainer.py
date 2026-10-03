@@ -284,6 +284,15 @@ class ModelTracker:
                 except Exception:
                     pass
 
+        # Auto-sync to MLflow if enabled
+        if self.config.mlflow_enabled:
+            try:
+                from vcm.integrations.mlflow_client import MLflowClient
+                mlflow_client = MLflowClient(repo_path=self.repo_path)
+                mlflow_client.sync_model(metadata)
+            except Exception:
+                pass
+
         return metadata
 
     @contextmanager
@@ -374,7 +383,18 @@ class ModelTracker:
         for k, v in hyperparameters.items():
             cmd.extend([f"--{k.replace('_', '-')}", str(v)])
 
-        proc = subprocess.run(cmd, cwd=self.repo_path, capture_output=False)
+        script_env = os.environ.copy()
+        script_env["VCM_MODEL_NAME"] = model_name
+        script_env["VCM_MODEL_FILE"] = expected_output
+        script_env["VCM_MODELS_DIR"] = output_dir or self.config.models_dir
+        if dataset:
+            script_env["VCM_DATASET"] = dataset
+            script_env["DATASET_PATH"] = dataset
+        if metrics_path:
+            script_env["VCM_METRICS_PATH"] = metrics_path
+            script_env["METRICS_PATH"] = metrics_path
+
+        proc = subprocess.run(cmd, cwd=self.repo_path, env=script_env, capture_output=False)
         if proc.returncode != 0:
             raise RuntimeError(f"Training script {script_path} failed with exit code {proc.returncode}")
 

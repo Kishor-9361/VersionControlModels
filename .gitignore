@@ -93,6 +93,7 @@ metrics*.json
 *.log
 timeline_report*.html
 session_report*.html
+sessions/
 
 # DVC local storage
 .dvc/cache/

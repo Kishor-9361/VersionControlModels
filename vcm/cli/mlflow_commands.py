@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from typing import Optional
 
@@ -9,6 +10,9 @@ import click
 
 from vcm.config import VCMConfig
 from vcm.integrations.mlflow_client import MLflowClient
+
+os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 
 @click.group(name="mlflow")

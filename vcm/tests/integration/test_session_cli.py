@@ -100,3 +100,47 @@ def test_session_cli_export(tmp_path):
     res_export_html = runner.invoke(cli, ["session", "export", "ExportSession", "--format", "html"])
     assert res_export_html.exit_code == 0
     assert os.path.exists("sessions/ExportSession.html")
+
+
+def test_session_cli_multiple_annotations_and_info(tmp_path):
+    """Verify that multiple annotations are retained and visible in session info immediately."""
+    os.chdir(tmp_path)
+    runner = CliRunner()
+    runner.invoke(cli, ["init"])
+
+    runner.invoke(cli, ["session", "start", "hyperparameter_tuning"])
+
+    res1 = runner.invoke(cli, ["session", "annotate", "Hypothesis: increasing tree depth sharpens decision boundaries"])
+    assert res1.exit_code == 0
+    assert "Annotation recorded" in res1.output
+
+    res2 = runner.invoke(cli, [
+        "session", "annotate",
+        "Observation: validation accuracy reached target threshold",
+        "--model", "iris_rf_v2",
+    ])
+    assert res2.exit_code == 0
+    assert "Annotation recorded" in res2.output
+
+    # Check session info WHILE session is still active
+    res_info_active = runner.invoke(cli, ["session", "info", "hyperparameter_tuning"])
+    assert res_info_active.exit_code == 0
+    assert "Annotations (2):" in res_info_active.output
+    assert "Hypothesis: increasing tree depth" in res_info_active.output
+    assert "Observation: validation accuracy reached target threshold" in res_info_active.output
+    assert "iris_rf_v2" in res_info_active.output
+
+    # Check session logs while active
+    res_logs = runner.invoke(cli, ["session", "logs", "hyperparameter_tuning"])
+    assert res_logs.exit_code == 0
+    assert "Annotation: Hypothesis" in res_logs.output
+
+    # End session
+    runner.invoke(cli, ["session", "end"])
+
+    # Check session info AFTER session is ended
+    res_info_ended = runner.invoke(cli, ["session", "info", "hyperparameter_tuning"])
+    assert res_info_ended.exit_code == 0
+    assert "Annotations (2):" in res_info_ended.output
+    assert "Hypothesis: increasing tree depth" in res_info_ended.output
+    assert "Observation: validation accuracy reached target threshold" in res_info_ended.output

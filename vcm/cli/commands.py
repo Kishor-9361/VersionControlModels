@@ -127,6 +127,8 @@ def train_cmd(
             click.echo(f"  Dataset:    {metadata.data.dvc_files[0].path}")
         if metadata.reasoning:
             click.echo(f"  Reasoning:  {metadata.reasoning}")
+        if tracker.config.mlflow_enabled:
+            click.echo(f"  MLflow:     synced to {tracker.config.mlflow_experiment_name}")
         click.echo(f"  Metadata:   {metadata.model_file}.vcm.json")
     except FileNotFoundError as exc:
         click.echo(f"Error: {exc}", err=True)

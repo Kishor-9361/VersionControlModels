@@ -226,6 +226,26 @@ class MetadataModel:
             d["evolution"] = dict(self.evolution)
         return d
 
+    @property
+    def accuracy(self) -> Optional[float]:
+        """Convenience property for model accuracy metric."""
+        val = self.metrics.get("accuracy")
+        if val is not None:
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    @property
+    def timestamp(self) -> str:
+        """Convenience property for training or creation ISO timestamp."""
+        if self.training and self.training.timestamp:
+            return str(self.training.timestamp)
+        if isinstance(self.created_at, datetime):
+            return self.created_at.isoformat()
+        return str(self.created_at)
+
     def __getitem__(self, key: str) -> Any:
         """Allow dictionary-style subscripting for test compatibility."""
         return self.to_dict()[key]

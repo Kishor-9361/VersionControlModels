@@ -2,6 +2,7 @@
 
 import json
 import os
+import pytest
 from click.testing import CliRunner
 
 from vcm.cli.main import cli
@@ -58,8 +59,9 @@ def test_mlflow_client_initialization(tmp_path):
     assert not client.enabled
 
 
-def test_mlflow_offline_sync(tmp_path):
+def test_mlflow_offline_sync(tmp_path, monkeypatch):
     """Verify offline file store writes valid MLflow run structure."""
+    monkeypatch.setattr(MLflowClient, "is_sdk_installed", staticmethod(lambda: False))
     meta = _create_sample_metadata(tmp_path)
     mlruns_dir = tmp_path / "mlruns"
 
@@ -85,6 +87,27 @@ def test_mlflow_offline_sync(tmp_path):
     assert (run_dir / "tags" / "vcm.git_commit").read_text() == "abcdef123456"
     assert (run_dir / "tags" / "vcm.reasoning").read_text() == "Baseline ensemble for benchmarking"
     assert (run_dir / "artifacts" / "iris_test_v1.vcm.json").exists()
+
+
+def test_mlflow_native_sync(tmp_path):
+    """Verify native SDK sync when MLflow library is available."""
+    if not MLflowClient.is_sdk_installed():
+        pytest.skip("MLflow SDK not installed")
+
+    meta = _create_sample_metadata(tmp_path)
+    mlruns_dir = tmp_path / "mlruns"
+
+    client = MLflowClient(
+        tracking_uri=f"file:{mlruns_dir}",
+        experiment_name="IrisClassificationNative",
+        repo_path=str(tmp_path),
+    )
+
+    res = client.sync_model(meta)
+    assert res["status"] == "success"
+    assert res["mode"] == "native_sdk"
+    assert res["model_name"] == "iris_test_v1"
+    assert res["run_id"] is not None
 
 
 def test_mlflow_cli_status(tmp_path):

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generator, List, Optional, Sequence, Tuple, Union
 
 from vcm.models.metadata import MetadataModel
-from vcm.models.session import Annotation, Session
+from vcm.models.session import Annotation, Session, SessionModelItem
 
 if TYPE_CHECKING:
     from vcm.models.evolution import ModelTimeline
@@ -586,6 +586,60 @@ class Database:
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to update session: {exc}") from exc
 
+    def _rehydrate_session_relations(self, conn: sqlite3.Connection, session: Session) -> None:
+        """Rehydrate annotations and linked models for a Session instance."""
+        try:
+            cur_annos = conn.execute(
+                "SELECT timestamp, text, model_related FROM session_annotations WHERE session_id = ? ORDER BY id ASC",
+                (session.session_id,),
+            ).fetchall()
+            if cur_annos:
+                session.annotations = [
+                    Annotation(
+                        timestamp=datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00")),
+                        text=r["text"],
+                        model_related=r["model_related"],
+                    )
+                    for r in cur_annos
+                ]
+
+            cur_models = conn.execute(
+                """
+                SELECT m.metadata_json FROM models m
+                JOIN session_models sm ON m.id = sm.model_id
+                WHERE sm.session_id = ?
+                ORDER BY sm.position_in_session ASC
+                """,
+                (session.session_id,),
+            ).fetchall()
+            if cur_models:
+                existing_names = {m.name for m in session.models_trained}
+                for idx, r in enumerate(cur_models, len(session.models_trained) + 1):
+                    try:
+                        mm = MetadataModel.from_json(r["metadata_json"])
+                        if mm.model_name not in existing_names:
+                            session.models_trained.append(
+                                SessionModelItem(
+                                    name=mm.model_name,
+                                    model_name=mm.model_name,
+                                    accuracy=mm.accuracy,
+                                    metrics=mm.metrics,
+                                    position=idx,
+                                    timestamp=mm.timestamp,
+                                )
+                            )
+                            existing_names.add(mm.model_name)
+                    except Exception:
+                        pass
+                session.models_count = len(session.models_trained)
+                cand = [m for m in session.models_trained if m.accuracy is not None]
+                if cand:
+                    best_m = max(cand, key=lambda m: float(m.accuracy or 0.0))
+                    session.best_model = best_m.name
+                    session.best_accuracy = float(best_m.accuracy or 0.0)
+        except Exception:
+            pass
+
     def get_session(self, session_id: str) -> Optional[Session]:
         """Retrieve a session by its unique session_id."""
         try:
@@ -598,7 +652,9 @@ class Database:
                 if not row or not row["session_json"]:
                     return None
                 data = json.loads(row["session_json"])
-                return Session.from_dict(data)
+                session = Session.from_dict(data)
+                self._rehydrate_session_relations(conn, session)
+                return session
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to fetch session by ID: {exc}") from exc
 
@@ -614,7 +670,9 @@ class Database:
                 if not row or not row["session_json"]:
                     return None
                 data = json.loads(row["session_json"])
-                return Session.from_dict(data)
+                session = Session.from_dict(data)
+                self._rehydrate_session_relations(conn, session)
+                return session
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to fetch session by name: {exc}") from exc
 
@@ -630,7 +688,9 @@ class Database:
                 for row in rows:
                     if row["session_json"]:
                         try:
-                            sessions.append(Session.from_dict(json.loads(row["session_json"])))
+                            s = Session.from_dict(json.loads(row["session_json"]))
+                            self._rehydrate_session_relations(conn, s)
+                            sessions.append(s)
                         except Exception:
                             pass
                 return sessions
@@ -652,6 +712,24 @@ class Database:
                         annotation.model_related,
                     ),
                 )
+                # Keep sessions.session_json in sync
+                cur = conn.execute(
+                    "SELECT session_json FROM sessions WHERE session_id = ?",
+                    (session_id,),
+                )
+                row = cur.fetchone()
+                if row and row["session_json"]:
+                    try:
+                        s_data = json.loads(row["session_json"])
+                        annos = s_data.get("annotations", [])
+                        annos.append(annotation.to_dict())
+                        s_data["annotations"] = annos
+                        conn.execute(
+                            "UPDATE sessions SET session_json = ? WHERE session_id = ?",
+                            (json.dumps(s_data, indent=2), session_id),
+                        )
+                    except Exception:
+                        pass
                 conn.commit()
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to add session annotation: {exc}") from exc

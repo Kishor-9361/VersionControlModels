@@ -280,6 +280,16 @@ class SessionTracker:
     def _get_active_file_path(self) -> str:
         return os.path.join(self.repo_path, self.ACTIVE_SESSION_FILE)
 
+    def _append_active_log(self, line: str) -> None:
+        try:
+            active_log_path = os.path.join(self.repo_path, ".vcm", "active_session.log")
+            ts = datetime.now(timezone.utc).astimezone().strftime("%H:%M:%S")
+            os.makedirs(os.path.dirname(active_log_path), exist_ok=True)
+            with open(active_log_path, "a", encoding="utf-8") as f:
+                f.write(f"{ts} | {line}\n")
+        except Exception:
+            pass
+
     def _get_database(self) -> Any:
         from vcm.db.database import Database
         db = Database(db_path=self.db_path)
@@ -316,10 +326,13 @@ class SessionTracker:
                     "user": self.session.user,
                     "branch": self.session.branch,
                     "initial_commit": self.session.initial_commit,
+                    "db_path": self.db_path,
                 },
                 f,
                 indent=2,
             )
+
+        self._append_active_log(f"Session started: {self.session_name} ({self.session_id})")
 
         # Persist session to database
         try:
@@ -338,19 +351,26 @@ class SessionTracker:
         """End session tracking, stop terminal capture, and persist final summary."""
         self.session.status = "completed"
         self.session.end_time = datetime.now(timezone.utc)
+        self._append_active_log(f"Session ended: {self.session_name} ({self.session_id})")
 
-        # Sync from DB in case models were logged by CLI/subprocess
+        # Sync from DB in case models or annotations were logged by CLI/subprocess
         try:
             db = self._get_database()
             saved = db.get_session(self.session_id)
-            if saved and saved.models_trained:
-                existing_names = {m.name for m in self.session.models_trained}
-                for m in saved.models_trained:
-                    if m.name not in existing_names:
-                        self.session.models_trained.append(m)
-                self.session.models_count = len(self.session.models_trained)
-                self.session.best_model = saved.best_model
-                self.session.best_accuracy = saved.best_accuracy
+            if saved:
+                if saved.models_trained:
+                    existing_names = {m.name for m in self.session.models_trained}
+                    for m in saved.models_trained:
+                        if m.name not in existing_names:
+                            self.session.models_trained.append(m)
+                    self.session.models_count = len(self.session.models_trained)
+                    self.session.best_model = saved.best_model
+                    self.session.best_accuracy = saved.best_accuracy
+                if saved.annotations:
+                    existing_texts = {(a.timestamp, a.text) for a in self.session.annotations}
+                    for a in saved.annotations:
+                        if (a.timestamp, a.text) not in existing_texts:
+                            self.session.annotations.append(a)
         except Exception:
             pass
 
@@ -358,6 +378,22 @@ class SessionTracker:
         captured = self.terminal_logger.stop_capture()
         if captured:
             self.session.terminal_log = captured
+
+        # Read active session log file if exists and merge
+        active_log_path = os.path.join(self.repo_path, ".vcm", "active_session.log")
+        if os.path.exists(active_log_path):
+            try:
+                with open(active_log_path, "r", encoding="utf-8") as f:
+                    file_logs = f.read().strip()
+                if file_logs:
+                    if self.session.terminal_log:
+                        if file_logs not in self.session.terminal_log:
+                            self.session.terminal_log = f"{file_logs}\n{self.session.terminal_log}"
+                    else:
+                        self.session.terminal_log = file_logs
+                os.remove(active_log_path)
+            except Exception:
+                pass
 
         # Update git commits
         git_info = self.git_client.get_safe_code_info()
@@ -457,6 +493,7 @@ class SessionTracker:
             self.session.best_model = item.name
 
         # Persist to database if initialized
+        self._append_active_log(f"Model trained: {extracted_name} (acc: {extracted_acc})")
         try:
             db = self._get_database()
             db.update_session(self.session)
@@ -473,9 +510,14 @@ class SessionTracker:
         )
         self.session.annotations.append(annotation)
 
+        log_line = f"Annotation: {text}" + (f" [model: {model_related}]" if model_related else "")
+        self.terminal_logger.log_line(log_line)
+        self._append_active_log(log_line)
+
         try:
             db = self._get_database()
             db.add_session_annotation(self.session_id, annotation)
+            db.update_session(self.session)
         except Exception:
             pass
 
@@ -483,8 +525,26 @@ class SessionTracker:
 
     def get_terminal_log(self) -> str:
         """Retrieve full terminal log."""
+        active_log_path = os.path.join(self.repo_path, ".vcm", "active_session.log")
+        active_content = ""
+        if os.path.exists(active_log_path):
+            try:
+                with open(active_log_path, "r", encoding="utf-8") as f:
+                    active_content = f.read().strip()
+            except Exception:
+                pass
+
         if self.terminal_logger._buffer:
-            return self.terminal_logger.get_log()
+            logger_log = self.terminal_logger.get_log()
+            if active_content and active_content not in logger_log:
+                return f"{active_content}\n{logger_log}"
+            return logger_log
+
+        if active_content:
+            if self.session.terminal_log:
+                return f"{self.session.terminal_log}\n{active_content}"
+            return active_content
+
         return self.session.terminal_log
 
     def get_models(self) -> List[SessionModelItem]:
@@ -612,6 +672,7 @@ class SessionTracker:
             tracker = cls(
                 session_name=data.get("session_name", "active_session"),
                 repo_path=repo_path,
+                db_path=data.get("db_path"),
                 session_id=data.get("session_id"),
             )
             # Rehydrate from DB if available
@@ -648,7 +709,7 @@ class SessionTracker:
             db = tracker._get_database()
             all_models = db.get_all_models()
             for m in reversed(all_models):
-                t_str = m.training.timestamp
+                t_str = m.timestamp
                 if t_str:
                     try:
                         m_time = datetime.fromisoformat(t_str.replace("Z", "+00:00"))
@@ -669,7 +730,18 @@ class SessionTracker:
         # Save to DB
         try:
             db = tracker._get_database()
-            db.insert_session(tracker.session)
+            existing = db.get_session(tracker.session_id)
+            if existing:
+                db.update_session(tracker.session)
+            else:
+                db.insert_session(tracker.session)
+
+            for idx, item in enumerate(tracker.session.models_trained, 1):
+                m_obj = db.get_model_by_name(item.name)
+                if m_obj:
+                    model_id = db.get_model_id_by_hash(m_obj.model_hash)
+                    if model_id is not None:
+                        db.link_model_to_session(tracker.session_id, model_id, position=idx)
         except Exception:
             pass
 

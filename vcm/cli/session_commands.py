@@ -132,13 +132,15 @@ def session_info(session_name: str) -> None:
 
     click.echo(f"\nAnnotations ({len(s.annotations)}):")
     for a in s.annotations:
-        click.echo(f"  • {format_local_timestamp(a.timestamp, '%H:%M:%S')}: \"{a.text}\"")
+        model_part = f" [Model: {a.model_related}]" if a.model_related else ""
+        click.echo(f"  • {format_local_timestamp(a.timestamp, '%H:%M:%S')}: \"{a.text}\"{model_part}")
 
     click.echo(f"\nGit Commits ({len(s.commits_made)}):")
     for c in s.commits_made:
         click.echo(f"  • {c}")
 
-    log_count = len(s.terminal_log.splitlines()) if s.terminal_log else 0
+    t_log = tracker.get_terminal_log() or s.terminal_log
+    log_count = len(t_log.splitlines()) if t_log else 0
     click.echo(f"\nTerminal Log: {log_count:,} lines captured\n")
 
 
