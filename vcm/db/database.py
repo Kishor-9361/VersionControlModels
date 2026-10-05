@@ -337,11 +337,31 @@ class Database:
         try:
             with self.get_connection() as conn:
                 cursor = conn.execute(
-                    "SELECT metadata_json FROM models WHERE dataset_hash = ? OR metadata_json LIKE ? ORDER BY id DESC",
+                    "SELECT dataset_hash, metadata_json FROM models WHERE dataset_hash = ? OR metadata_json LIKE ? ORDER BY id DESC",
                     (dataset_hash, f"%{dataset_hash}%"),
                 )
                 rows = cursor.fetchall()
-                return [MetadataModel.from_json(row["metadata_json"]) for row in rows]
+                target = os.path.normpath(dataset_hash).lower()
+                results: List[MetadataModel] = []
+                for row in rows:
+                    m = MetadataModel.from_json(row["metadata_json"])
+                    if row["dataset_hash"] == dataset_hash:
+                        results.append(m)
+                    elif m.data and m.data.dvc_files:
+                        primary = m.data.dvc_files[0]
+                        p_path = os.path.normpath(primary.path).lower()
+                        p_hash = (primary.dvc_hash or "").lower()
+                        if (
+                            target == p_path
+                            or target in p_path
+                            or p_path.endswith(target)
+                            or target in p_hash
+                            or p_hash.startswith(target)
+                        ):
+                            results.append(m)
+                    elif dataset_hash in row["metadata_json"]:
+                        results.append(m)
+                return results
         except sqlite3.Error as exc:
             raise DatabaseError(f"Failed to query models by dataset: {exc}") from exc
 

@@ -221,7 +221,7 @@ def main() -> None:
         ("Session Tracking", "End active session and save immutable session archive", [vcm_bin, "session", "end"]),
         ("Session Tracking", "Create retrospective session from existing model history", [vcm_bin, "session", "create-retrospective", "--name", "historical_benchmark_session"]),
         ("Session Tracking", "List models linked to retrospective session", [vcm_bin, "session", "models", "historical_benchmark_session"]),
-        ("Session Tracking", "Compare two development sessions side-by-side", [vcm_bin, "session", "compare", "historical_benchmark_session", "historical_benchmark_session"]),
+        ("Session Tracking", "Compare two development sessions side-by-side", [vcm_bin, "session", "compare", "hyperparameter_tuning", "historical_benchmark_session"]),
         ("Session Tracking", "Explain performance improvement between models in session", [vcm_bin, "session", "explain-improvement", "historical_benchmark_session", "iris_logistic_v1", "iris_rf_v2"]),
         ("Session Tracking", "Export session summary report to interactive HTML visualizer", [vcm_bin, "session", "export", "historical_benchmark_session", "--format", "html", "--output", "session_report.html"]),
         ("Session Tracking", "Export session summary to structured JSON", [vcm_bin, "session", "export", "historical_benchmark_session", "--format", "json", "--output", "session_report.json"]),

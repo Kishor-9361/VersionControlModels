@@ -176,13 +176,24 @@ def models_cmd(
 
         # Apply dataset filter
         if dataset:
-            models = [
-                m for m in models
-                if any(
-                    dataset in f.path or dataset in f.dvc_hash
-                    for f in m.data.dvc_files
-                )
-            ]
+            norm_target = os.path.normpath(dataset).lower()
+            filtered_models = []
+            for m in models:
+                if not m.data.dvc_files:
+                    continue
+                primary_ds = m.data.dvc_files[0]
+                p_path = os.path.normpath(primary_ds.path).lower()
+                p_hash = (primary_ds.dvc_hash or "").lower()
+
+                if (
+                    norm_target == p_path
+                    or norm_target in p_path
+                    or p_path.endswith(norm_target)
+                    or norm_target in p_hash
+                    or p_hash.startswith(norm_target)
+                ):
+                    filtered_models.append(m)
+            models = filtered_models
 
         # Apply best filter
         if best and models:
@@ -448,6 +459,55 @@ def analysis_cmd(report: Optional[str], compare: Optional[tuple[str, str]], show
     config = VCMConfig.load()
     db = Database(config.database_path)
     models = db.get_all_models()
+
+    if show_impact and not compare:
+        click.echo("VCM Sequential Impact Analysis Across Iterations")
+        click.echo("=================================================")
+        if len(models) < 2:
+            click.echo("At least 2 models required for sequential impact analysis.")
+            return
+        sorted_models = sorted(models, key=lambda m: m.created_at or "")
+        for i in range(len(sorted_models) - 1):
+            m1 = sorted_models[i]
+            m2 = sorted_models[i + 1]
+            acc1 = float(m1.metrics.get("accuracy", 0.0))
+            acc2 = float(m2.metrics.get("accuracy", 0.0))
+            click.echo(f"\nIteration {i + 1} ➔ {i + 2}: {m1.model_name} vs {m2.model_name}")
+            click.echo("─" * 45)
+            click.echo(f"Accuracy: {acc1:.2%} -> {acc2:.2%} (delta: {acc2 - acc1:+.2%})")
+            data_changed = (
+                bool(m1.data.dvc_files)
+                and bool(m2.data.dvc_files)
+                and m1.data.dvc_files[0].dvc_hash != m2.data.dvc_files[0].dvc_hash
+            )
+            code_changed = m1.code.git_commit != m2.code.git_commit
+            params_changed = m1.hyperparameters != m2.hyperparameters
+            click.echo(f"Data changed: {data_changed}")
+            click.echo(f"Code changed: {code_changed}")
+            click.echo(f"Params changed: {params_changed}")
+            if data_changed and not code_changed:
+                click.echo("Primary driver: DATA")
+            elif code_changed and not data_changed:
+                click.echo("Primary driver: CODE")
+            elif params_changed:
+                click.echo("Primary driver: HYPERPARAMETERS")
+            else:
+                click.echo("Primary driver: COMBINED / STABLE")
+        return
+
+    if report == "summary":
+        click.echo("VCM Model Lineage Summary Report")
+        click.echo("================================")
+        click.echo(f"Total Models Tracked: {len(models)}")
+        datasets = {m.data.dvc_files[0].path if m.data.dvc_files else "N/A" for m in models}
+        click.echo(f"Datasets: {len(datasets)} ({', '.join(sorted(datasets))})")
+        commits = {m.code.git_commit[:7] for m in models if m.code.git_commit}
+        click.echo(f"Git Revisions: {len(commits)} ({', '.join(sorted(commits)) if commits else 'N/A'})")
+        best_m = db.get_best_model("accuracy")
+        if best_m:
+            best_acc = best_m.metrics.get("accuracy", 0.0) * 100
+            click.echo(f"Best Model: {best_m.model_name} (Accuracy: {best_acc:.2f}%)")
+        return
 
     if report == "full_lineage" or (not compare and not report):
         click.echo("VCM Full Lineage Report")
